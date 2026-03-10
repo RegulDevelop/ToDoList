@@ -29,7 +29,7 @@ class TasksViewModel {
                 case .success(let todos):
                     // Сохраняем задачи в CoreData
                     for todo in todos {
-                        self.storage.saveTask(title: todo.todo, description: "UserID: \(todo.userId)")
+                        _ = self.storage.saveTask(title: todo.todo, description: "UserID: \(todo.userId)")
                     }
                     // Ставим флаг, что первый запуск уже был
                     UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
@@ -51,18 +51,48 @@ class TasksViewModel {
 
     // MARK: - Добавление новой задачи
     func addTask(title: String, userId: Int) {
-        // Сохраняем в CoreData
-        storage.saveTask(title: title, description: "UserID: \(userId)")
-        // Обновляем локальный массив
+//        // Сохраняем в CoreData
+//        storage.saveTask(title: title, description: "UserID: \(userId)")
+//        // Обновляем локальный массив
+//        tasks = storage.fetchTasks()
+//        let task = storage.saveTask(
+//            title: title,
+//            description: "UserID: \(userId)"
+//        )
+//        
+//        storage.saveTask(title: title, description: "UserID: \(userId)")
+//        // Загружаем новые задачи с сортировкой по createdAt descending
+//        tasks = storage.fetchTasks()
+//
+//        // добавляем в начало массива
+//        tasks.insert(task, at: 0)
+        
+        // Сохраняем задачу в CoreData и получаем объект
+        let task = storage.saveTask(title: title, description: "UserID: \(userId)")
+
+        // Загружаем все задачи с сортировкой по createdAt descending
         tasks = storage.fetchTasks()
+
+        // Вставляем только что созданную задачу в начало массива
+        // (если fetchTasks не возвращает её сверху автоматически)
+        if !tasks.contains(task) {
+            tasks.insert(task, at: 0)
+        }
     }
 
     // MARK: - Удаление задачи
     func deleteTask(at index: Int) {
+//        guard tasks.indices.contains(index) else { return }
+//        let task = tasks[index]
+//        storage.deleteTask(task)
+//        tasks = storage.fetchTasks()
+        
         guard tasks.indices.contains(index) else { return }
         let task = tasks[index]
         storage.deleteTask(task)
-        tasks = storage.fetchTasks()
+            
+        // удаляем из массива
+        tasks.remove(at: index)
     }
 
     // MARK: - Обновление статуса задачи

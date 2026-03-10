@@ -95,9 +95,10 @@ class TaskTableViewCell: UITableViewCell {
         titleLabel.text = task.title
         if let date = task.createdAt {
             let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ru_RU") 
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            dateLabel.text = "Created: \(formatter.string(from: date))"
+            dateLabel.text = "Добавлено: \(formatter.string(from: date))"
         } else {
             dateLabel.text = ""
         }

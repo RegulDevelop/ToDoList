@@ -17,10 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
         let window = UIWindow(windowScene: windowScene)
-        
         let tasksVC = TasksViewController()
-        tasksVC.title = "ToDo List"
-
         let navController = UINavigationController(rootViewController: tasksVC)
         
         window.rootViewController = navController

@@ -43,23 +43,40 @@ final class CoreDataManager {
     }
     
     // Метод сохранения задачи
-    func saveTask(title: String, description: String) {
+    func saveTask(title: String, description: String) -> TaskEntity {
 
+//        let task = TaskEntity(context: context)
+//
+//        task.id = Int64(Date().timeIntervalSince1970)
+//        task.title = title
+//        task.taskDescription = description
+//        task.createdAt = Date()
+//        task.isCompleted = false
+//
+//        saveContext()
+        
         let task = TaskEntity(context: context)
 
-        task.id = Int64(Date().timeIntervalSince1970)
         task.title = title
         task.taskDescription = description
         task.createdAt = Date()
         task.isCompleted = false
 
         saveContext()
+
+        return task
     }
     
     // Метод получения задачи
     func fetchTasks() -> [TaskEntity] {
 
         let request: NSFetchRequest<TaskEntity> = TaskEntity.fetchRequest()
+        
+        // Сортируем сначала по order (если используешь drag&drop), потом по дате создания
+        request.sortDescriptors = [
+            NSSortDescriptor(key: "order", ascending: true),        // порядок из drag&drop
+            NSSortDescriptor(key: "createdAt", ascending: false)    // новые сверху
+        ]
 
         do {
             return try context.fetch(request)
