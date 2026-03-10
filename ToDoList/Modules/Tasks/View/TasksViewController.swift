@@ -7,7 +7,10 @@
 
 import UIKit
 
-class TasksViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate {
+class TasksViewController: UIViewController,
+                            UITableViewDataSource,
+                            UITableViewDelegate,
+                            UISearchBarDelegate {
 
     private let tableView = UITableView()
     private let viewModel = TasksViewModel()
@@ -40,7 +43,7 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
         let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
         let image = UIImage(systemName: "plus.circle.fill", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.tintColor = .systemGreen
+        button.tintColor = .systemYellow
         return button
     }()
     
@@ -68,6 +71,7 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
         
 //        tableView.isEditing = true
         tableView.allowsSelectionDuringEditing = true
+        tableView.keyboardDismissMode = .onDrag
         
         setupHeader()
         setupSearchBar()
@@ -75,9 +79,11 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
         setupFooter()
         
         // Добавляем тап для закрытия клавиатуры
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        tapGesture.cancelsTouchesInView = false // чтобы TableView и другие элементы тоже работали при тапе
-        view.addGestureRecognizer(tapGesture)
+        
+//        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+//        tapGesture.cancelsTouchesInView = false
+//        tableView.backgroundView = UIView() // обязательно создать
+//        tableView.backgroundView?.addGestureRecognizer(tapGesture)
 
         // Загружаем задачи
         viewModel.loadTasks { [weak self] in
@@ -225,32 +231,43 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
 
     // MARK: - Добавление новой задачи
     @objc private func addTaskTapped() {
-        let alert = UIAlertController(title: "Новая задача", message: "Введите название задачи", preferredStyle: .alert)
-        alert.addTextField { textField in
-            textField.placeholder = "Название задачи"
-        }
-        alert.addTextField { textField in
-            textField.placeholder = "UserID"
-            textField.keyboardType = .numberPad
+//        let alert = UIAlertController(title: "Новая задача", message: "Введите название задачи", preferredStyle: .alert)
+//        alert.addTextField { textField in
+//            textField.placeholder = "Название задачи"
+//        }
+//        alert.addTextField { textField in
+//            textField.placeholder = "UserID"
+//            textField.keyboardType = .numberPad
+//        }
+//
+//        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+//        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { [weak self] _ in
+//            guard let self = self else { return }
+//            let title = alert.textFields?[0].text ?? "Без названия"
+//            let userId = Int(alert.textFields?[1].text ?? "0") ?? 0
+//            self.viewModel.addTask(title: title, userId: userId)
+//            self.tableView.reloadData()
+//            self.updateTasksCount()
+//            self.tableView.reloadData()
+//                self.updateTasksCount()
+//                if self.isSearching {
+//                    self.searchBar.text = ""
+//                    self.isSearching = false
+//                }
+//        }))
+//
+//        present(alert, animated: true)
+        
+        let addVC = AddTaskViewController()
+        addVC.delegate = self
+
+        if let sheet = addVC.sheetPresentationController {
+            // Настраиваем лист
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
         }
 
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { [weak self] _ in
-            guard let self = self else { return }
-            let title = alert.textFields?[0].text ?? "Без названия"
-            let userId = Int(alert.textFields?[1].text ?? "0") ?? 0
-            self.viewModel.addTask(title: title, userId: userId)
-            self.tableView.reloadData()
-            self.updateTasksCount()
-            self.tableView.reloadData()
-                self.updateTasksCount()
-                if self.isSearching {
-                    self.searchBar.text = ""
-                    self.isSearching = false
-                }
-        }))
-
-        present(alert, animated: true)
+        present(addVC, animated: true)
     }
 
     // MARK: - UITableViewDataSource
@@ -348,18 +365,33 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
 //        updateTasksCount()
         
         // 1. Перемещаем элемент в массиве
+//        let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
+//        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
+//            
+//        // 2. Обновляем порядок всех задач
+//        for (index, task) in viewModel.tasks.enumerated() {
+//            task.order = Int64(index)
+//        }
+//            
+//        // 3. Сохраняем изменения в CoreData
+//        CoreDataManager.shared.saveContext()
+//            
+//        // 4. Обновляем UI, если нужно
+//        updateTasksCount()
+        
+        guard sourceIndexPath != destinationIndexPath else { return }
+
         let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
         viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
             
-        // 2. Обновляем порядок всех задач
+        // Обновляем порядок
         for (index, task) in viewModel.tasks.enumerated() {
             task.order = Int64(index)
         }
             
-        // 3. Сохраняем изменения в CoreData
         CoreDataManager.shared.saveContext()
             
-        // 4. Обновляем UI, если нужно
+        // Не нужно reloadData, UIKit сам обновляет позицию ячейки
         updateTasksCount()
     }
 }
@@ -414,5 +446,31 @@ extension TasksViewController: UITableViewDropDelegate {
     func tableView(_ tableView: UITableView,
                    canHandle session: UIDropSession) -> Bool {
         return session.localDragSession != nil
+    }
+}
+
+extension TasksViewController: AddTaskViewControllerDelegate {
+
+    func didAddTask(title: String, description: String, isCompleted: Bool) {
+        // Если метод addTask требует userId:
+        viewModel.addTask(
+            title: title,
+            userId: 0, // можно оставить 0 или убрать полностью из метода
+            description: description,
+            isCompleted: isCompleted
+        )
+
+        tableView.reloadData()
+        updateTasksCount()
+    }
+}
+
+extension TasksViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        // Если тапнули по TableViewCell, SearchBar или кнопке — жест не срабатывает
+        if let view = touch.view, view is UITableViewCell || view is UIButton || view is UISearchBar {
+            return false
+        }
+        return true
     }
 }

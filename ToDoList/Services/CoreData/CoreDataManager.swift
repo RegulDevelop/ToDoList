@@ -43,27 +43,37 @@ final class CoreDataManager {
     }
     
     // Метод сохранения задачи
-    func saveTask(title: String, description: String) -> TaskEntity {
-
+//    func saveTask(title: String, description: String) -> TaskEntity {
+//
+////        let task = TaskEntity(context: context)
+////
+////        task.id = Int64(Date().timeIntervalSince1970)
+////        task.title = title
+////        task.taskDescription = description
+////        task.createdAt = Date()
+////        task.isCompleted = false
+////
+////        saveContext()
+//        
 //        let task = TaskEntity(context: context)
 //
-//        task.id = Int64(Date().timeIntervalSince1970)
 //        task.title = title
 //        task.taskDescription = description
 //        task.createdAt = Date()
-//        task.isCompleted = false
+//        task.isCompleted = isCompleted
 //
 //        saveContext()
-        
+//
+//        return task
+//    }
+    
+    func saveTask(title: String, description: String, isCompleted: Bool) -> TaskEntity {
         let task = TaskEntity(context: context)
-
         task.title = title
         task.taskDescription = description
+        task.isCompleted = isCompleted
         task.createdAt = Date()
-        task.isCompleted = false
-
         saveContext()
-
         return task
     }
     

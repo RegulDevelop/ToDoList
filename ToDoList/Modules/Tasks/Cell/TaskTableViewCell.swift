@@ -22,8 +22,18 @@ class TaskTableViewCell: UITableViewCell {
     // Заголовок задачи
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .boldSystemFont(ofSize: 16)
+        label.font = .boldSystemFont(ofSize: 18)
+        label.textColor = .white
         label.numberOfLines = 0
+        return label
+    }()
+    
+    private let descriptionLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 16)
+        label.textColor = .white
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
         return label
     }()
 
@@ -49,6 +59,7 @@ class TaskTableViewCell: UITableViewCell {
 
         contentView.addSubview(containerView)
         contentView.addSubview(titleLabel)
+        contentView.addSubview(descriptionLabel)
         contentView.addSubview(dateLabel)
         contentView.addSubview(statusLabel)
         
@@ -62,6 +73,7 @@ class TaskTableViewCell: UITableViewCell {
     private func setupConstraints() {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -76,9 +88,13 @@ class TaskTableViewCell: UITableViewCell {
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
             titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
             titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            descriptionLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            descriptionLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
 
             // Дата
-            dateLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            dateLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 5),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             dateLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
 
@@ -93,9 +109,11 @@ class TaskTableViewCell: UITableViewCell {
     // MARK: - Настройка ячейки
     func configure(with task: TaskEntity) {
         titleLabel.text = task.title
+        descriptionLabel.text = task.taskDescription
+            
         if let date = task.createdAt {
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ru_RU") 
+            formatter.locale = Locale(identifier: "ru_RU")
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
             dateLabel.text = "Добавлено: \(formatter.string(from: date))"

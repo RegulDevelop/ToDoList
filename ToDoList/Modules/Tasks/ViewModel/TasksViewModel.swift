@@ -29,7 +29,11 @@ class TasksViewModel {
                 case .success(let todos):
                     // Сохраняем задачи в CoreData
                     for todo in todos {
-                        _ = self.storage.saveTask(title: todo.todo, description: "UserID: \(todo.userId)")
+                        _ = self.storage.saveTask(
+                            title: todo.todo,
+                            description: "UserID: \(todo.userId)",
+                            isCompleted: false   // например, новые задачи считаем невыполненными
+                        )
                     }
                     // Ставим флаг, что первый запуск уже был
                     UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
@@ -50,7 +54,7 @@ class TasksViewModel {
     }
 
     // MARK: - Добавление новой задачи
-    func addTask(title: String, userId: Int) {
+    func addTask(title: String, userId: Int, description: String, isCompleted: Bool) {
 //        // Сохраняем в CoreData
 //        storage.saveTask(title: title, description: "UserID: \(userId)")
 //        // Обновляем локальный массив
@@ -68,7 +72,7 @@ class TasksViewModel {
 //        tasks.insert(task, at: 0)
         
         // Сохраняем задачу в CoreData и получаем объект
-        let task = storage.saveTask(title: title, description: "UserID: \(userId)")
+        let task = storage.saveTask(title: title, description: description, isCompleted: isCompleted)
 
         // Загружаем все задачи с сортировкой по createdAt descending
         tasks = storage.fetchTasks()
