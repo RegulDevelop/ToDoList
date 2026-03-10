@@ -6,40 +6,75 @@
 //
 
 import Foundation
+import CoreData
 
 class TasksViewModel {
 
     private let networkService = NetworkService()
+    private let storage = CoreDataManager.shared
 
-    // Массив задач
-    var tasks: [TodoDTO] = []
+    // Массив задач для UI
+    var tasks: [TaskEntity] = []
 
-    // Загрузка задач
+    // MARK: - Загрузка задач
     func loadTasks(completion: @escaping () -> Void) {
-        networkService.fetchTodosFromFile { [weak self] result in
-            switch result {
-            case .success(let todos):
-                self?.tasks = todos
-            case .failure(let error):
-                print("Ошибка загрузки: \(error)")
+        let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+
+        if isFirstLaunch {
+            // Первый запуск → загружаем JSON
+            networkService.fetchTodosFromFile { [weak self] result in
+                guard let self = self else { return }
+
+                switch result {
+                case .success(let todos):
+                    // Сохраняем задачи в CoreData
+                    for todo in todos {
+                        self.storage.saveTask(title: todo.todo, description: "UserID: \(todo.userId)")
+                    }
+                    // Ставим флаг, что первый запуск уже был
+                    UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+
+                case .failure(let error):
+                    print("Ошибка загрузки API: \(error)")
+                }
+
+                // Загружаем все задачи из CoreData
+                self.tasks = self.storage.fetchTasks()
+                completion()
             }
+        } else {
+            // Не первый запуск → просто грузим задачи из CoreData
+            tasks = storage.fetchTasks()
             completion()
         }
     }
 
-    // Добавление задачи
-    func addTask(_ task: TodoDTO) {
-        tasks.append(task)
+    // MARK: - Добавление новой задачи
+    func addTask(title: String, userId: Int) {
+        // Сохраняем в CoreData
+        storage.saveTask(title: title, description: "UserID: \(userId)")
+        // Обновляем локальный массив
+        tasks = storage.fetchTasks()
     }
 
-    // Удаление задачи
+    // MARK: - Удаление задачи
     func deleteTask(at index: Int) {
         guard tasks.indices.contains(index) else { return }
-        tasks.remove(at: index)
+        let task = tasks[index]
+        storage.deleteTask(task)
+        tasks = storage.fetchTasks()
     }
 
-    // Поиск
-    func searchTasks(keyword: String) -> [TodoDTO] {
-        tasks.filter { $0.todo.lowercased().contains(keyword.lowercased()) }
+    // MARK: - Обновление статуса задачи
+    func updateTaskCompleted(at index: Int, completed: Bool) {
+        guard tasks.indices.contains(index) else { return }
+        let task = tasks[index]
+        storage.updateTask(task, completed: completed)
+        tasks = storage.fetchTasks()
+    }
+
+    // MARK: - Поиск задач
+    func searchTasks(keyword: String) -> [TaskEntity] {
+        tasks.filter { $0.title?.lowercased().contains(keyword.lowercased()) ?? false }
     }
 }
