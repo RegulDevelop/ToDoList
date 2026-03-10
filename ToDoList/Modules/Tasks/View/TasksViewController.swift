@@ -16,10 +16,12 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
         super.viewDidLoad()
         view.backgroundColor = .white
 
-        // Настройка TableView
-        tableView.frame = view.bounds
+        // Регистрируем кастомную ячейку
+        tableView.register(TaskTableViewCell.self, forCellReuseIdentifier: TaskTableViewCell.identifier)
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.frame = view.bounds
+        tableView.separatorStyle = .none
         view.addSubview(tableView)
 
         // Кнопка "Добавить задачу"
@@ -63,16 +65,12 @@ class TasksViewController: UIViewController, UITableViewDataSource, UITableViewD
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: TaskTableViewCell.identifier, for: indexPath) as? TaskTableViewCell else {
+            return UITableViewCell()
+        }
 
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "cell")
         let task = viewModel.tasks[indexPath.row]
-
-        cell.textLabel?.text = task.title
-        cell.detailTextLabel?.text = "Created: \(task.createdAt?.formatted() ?? "") - Completed: \(task.isCompleted)"
-
-        // Отображаем галочку для выполненных задач
-        cell.accessoryType = task.isCompleted ? .checkmark : .none
-
+        cell.configure(with: task)
         return cell
     }
 

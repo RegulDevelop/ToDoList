@@ -7,11 +7,6 @@
 
 import Foundation
 
-struct TodoResponse: Decodable {
-    
+struct TodoResponse: Codable {
     let todos: [TodoDTO]
-    let total: Int
-    let skip: Int
-    let limit: Int
-    
 }
