@@ -259,15 +259,14 @@ class TasksViewController: UIViewController,
 //        present(alert, animated: true)
         
         let addVC = AddTaskViewController()
-        addVC.delegate = self
+            addVC.delegate = self
 
-        if let sheet = addVC.sheetPresentationController {
-            // Настраиваем лист
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-        }
+            if let sheet = addVC.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+            }
 
-        present(addVC, animated: true)
+            present(addVC, animated: true)
     }
 
     // MARK: - UITableViewDataSource
@@ -284,6 +283,7 @@ class TasksViewController: UIViewController,
 
         // let task = viewModel.tasks[indexPath.row]
         let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+        cell.selectionStyle = .none
         cell.configure(with: task)
         //cell.showsReorderControl = true
         return cell
@@ -293,55 +293,75 @@ class TasksViewController: UIViewController,
 
     // Удаление свайпом
     func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-//        if editingStyle == .delete {
-//            viewModel.deleteTask(at: indexPath.row)
-//            tableView.deleteRows(at: [indexPath], with: .automatic)
-//            updateTasksCount()
-//        }
-        
-//        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-//            guard let self = self else { return }
+
+    
+//            let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+//                guard let self = self else { return }
+//                self.viewModel.deleteTask(at: indexPath.row)
+//                tableView.deleteRows(at: [indexPath], with: .automatic)
+//                self.updateTasksCount()
+//                completionHandler(true)
+//            }
 //
-//            // Удаляем задачу из ViewModel
-//            self.viewModel.deleteTask(at: indexPath.row)
-//                
-//            // Удаляем строку из таблицы с анимацией
-//            tableView.deleteRows(at: [indexPath], with: .automatic)
-//                
-//            // Обновляем счетчик задач
-//            self.updateTasksCount()
-//                
-//            completionHandler(true)
+//            deleteAction.backgroundColor = .systemRed
+//            deleteAction.image = UIImage(systemName: "trash.fill")
+//            return UISwipeActionsConfiguration(actions: [deleteAction])
         
-        
-//        }
-//            
-//        deleteAction.backgroundColor = .systemRed
-//        deleteAction.image = UIImage(systemName: "trash.fill")
-//            
-//        let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
-//        configuration.performsFirstActionWithFullSwipe = true
-//        return configuration
-        
-        
-            let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+        let task = viewModel.tasks[indexPath.row]
+            let completeAction = UIContextualAction(
+                style: .normal,
+                title: task.isCompleted ? "Снять" : "Выполнено"
+            ) { [weak self] _, _, completionHandler in
                 guard let self = self else { return }
-                self.viewModel.deleteTask(at: indexPath.row)
-                tableView.deleteRows(at: [indexPath], with: .automatic)
-                self.updateTasksCount()
+                self.viewModel.updateTaskCompleted(at: indexPath.row, completed: !task.isCompleted)
+                tableView.reloadRows(at: [indexPath], with: .automatic)
                 completionHandler(true)
             }
-
-            deleteAction.backgroundColor = .systemRed
-            deleteAction.image = UIImage(systemName: "trash.fill")
-            return UISwipeActionsConfiguration(actions: [deleteAction])
+            completeAction.backgroundColor = .systemGreen
+            completeAction.image = UIImage(systemName: task.isCompleted ? "xmark.circle" : "checkmark.circle")
+            
+            let config = UISwipeActionsConfiguration(actions: [completeAction])
+            config.performsFirstActionWithFullSwipe = true
+            return config
+    }
+    
+    // Свайп влево → удаление задачи
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+            guard let self = self else { return }
+            self.viewModel.deleteTask(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            self.updateTasksCount()
+            completionHandler(true)
+        }
+        deleteAction.backgroundColor = .systemRed
+        deleteAction.image = UIImage(systemName: "trash.fill")
+        
+        let config = UISwipeActionsConfiguration(actions: [deleteAction])
+        config.performsFirstActionWithFullSwipe = true
+        return config
     }
 
     // Отмечаем/снимаем задачу как выполненную
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+            
         let task = viewModel.tasks[indexPath.row]
-        viewModel.updateTaskCompleted(at: indexPath.row, completed: !task.isCompleted)
-        tableView.reloadRows(at: [indexPath], with: .automatic)
+            
+            let addVC = AddTaskViewController()
+            addVC.isEditingTask = true          // включаем режим редактирования
+            addVC.existingTask = task           // передаем задачу
+            addVC.showCompletedSwitch = true    // показываем switch
+            addVC.showShareButton = true        // показываем share
+            
+            // Делаем делегатом self, чтобы при добавлении/изменении обновлять таблицу
+            addVC.delegate = self
+
+            if let sheet = addVC.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+            }
+
+            present(addVC, animated: true)
     }
     
     // Разрешаем редактирование ячеек (чтобы включить drag & drop)
@@ -424,28 +444,73 @@ extension TasksViewController: UITableViewDropDelegate {
 
 extension TasksViewController: AddTaskViewControllerDelegate {
 
-    func didAddTask(title: String, description: String, isCompleted: Bool) {
+//    func didAddTask(title: String, description: String, isCompleted: Bool) {
     
+//        viewModel.addTask(title: title,
+//                            userId: 0,
+//                            description: description,
+//                            isCompleted: isCompleted)
+//
+//        tableView.reloadData()
+//
+//        if !viewModel.tasks.isEmpty {
+//            let indexPath = IndexPath(row: 0, section: 0)
+//            tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+//        }
+//
+//        updateTasksCount()
+//
+//        if let selectedIndexPath = tableView.indexPathForSelectedRow {
+//                // Обновляем существующую задачу
+//                let task = viewModel.tasks[selectedIndexPath.row]
+//                task.title = title
+//                task.taskDescription = description
+//                task.isCompleted = isCompleted
+//                CoreDataManager.shared.saveContext()
+//
+//                tableView.reloadRows(at: [selectedIndexPath], with: .automatic)
+//            } else {
+//                // Добавляем новую задачу
+//                viewModel.addTask(title: title, userId: 0, description: description, isCompleted: isCompleted)
+//                tableView.reloadData()
+//                if !viewModel.tasks.isEmpty {
+//                    let indexPath = IndexPath(row: 0, section: 0)
+//                    tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+//                }
+//            }
+//            updateTasksCount()
+
+    func didAddTask(_ task: TaskEntity) {
+        if let index = viewModel.tasks.firstIndex(of: task) {
+                    // Если задача уже есть → редактируем
+                    viewModel.tasks[index] = task
+                    tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+                } else {
+                    // Добавление новой
+                    viewModel.tasks.insert(task, at: 0)
+                    tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                }
+                updateTasksCount()
         
-        // 1️⃣ Добавляем задачу через ViewModel
-        viewModel.addTask(title: title,
-                            userId: 0,
-                            description: description,
-                            isCompleted: isCompleted)
-
-        // 2️⃣ Перезагружаем таблицу
-        tableView.reloadData()
-                
-        // 3️⃣ Прокручиваем к первой ячейке
-        if !viewModel.tasks.isEmpty {
-            let indexPath = IndexPath(row: 0, section: 0)
-            tableView.scrollToRow(at: indexPath, at: .top, animated: true)
-        }
-
-        // 4️⃣ Обновляем счетчик задач
-        updateTasksCount()
-            
+//        if let index = viewModel.tasks.firstIndex(of: task) {
+//                // Редактируем существующую задачу
+//                viewModel.tasks[index] = task
+//                tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+//            } else {
+//                // Добавление новой задачи сверху
+//                viewModel.tasks.insert(task, at: 0)
+//                UIView.performWithoutAnimation {
+//                    tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .none)
+//                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
+//                }
+//            }
+//            updateTasksCount()
+//
     }
+    
+    
+    
 }
 
 extension TasksViewController: UIGestureRecognizerDelegate {

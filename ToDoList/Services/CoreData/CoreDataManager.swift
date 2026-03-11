@@ -110,4 +110,22 @@ final class CoreDataManager {
         saveContext()
     }
     
+    // метод сохранения API задач в CoreData
+    func saveTodosFromAPI(_ todos: [TodoDTO]) {
+
+        for todo in todos {
+
+            let task = TaskEntity(context: context)
+
+            task.title = todo.todo
+            task.taskDescription = ""
+            task.isCompleted = todo.completed
+            task.createdAt = Date()
+            task.order = Int64(todo.id)
+
+        }
+
+        saveContext()
+    }
+    
 }

@@ -18,39 +18,71 @@ class TasksViewModel {
 
     // MARK: - Загрузка задач
     func loadTasks(completion: @escaping () -> Void) {
+//        let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+//
+//        if isFirstLaunch {
+//            // Первый запуск → загружаем JSON
+//            networkService.fetchTodosFromFile { [weak self] result in
+//                guard let self = self else { return }
+//
+//                switch result {
+//                case .success(let todos):
+//                    // Сохраняем задачи в CoreData
+//                    for todo in todos {
+//                        _ = self.storage.saveTask(
+//                            title: todo.todo,
+//                            description: "UserID: \(todo.userId)",
+//                            isCompleted: false   // например, новые задачи считаем невыполненными
+//                        )
+//                    }
+//                    // Ставим флаг, что первый запуск уже был
+//                    UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+//
+//                case .failure(let error):
+//                    print("Ошибка загрузки API: \(error)")
+//                }
+//
+//                // Загружаем все задачи из CoreData
+//                self.tasks = self.storage.fetchTasks()
+//                completion()
+//            }
+//        } else {
+//            // Не первый запуск → просто грузим задачи из CoreData
+//            tasks = storage.fetchTasks()
+//            completion()
+//        }
+        
         let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
 
-        if isFirstLaunch {
-            // Первый запуск → загружаем JSON
-            networkService.fetchTodosFromFile { [weak self] result in
-                guard let self = self else { return }
+           if isFirstLaunch {
 
-                switch result {
-                case .success(let todos):
-                    // Сохраняем задачи в CoreData
-                    for todo in todos {
-                        _ = self.storage.saveTask(
-                            title: todo.todo,
-                            description: "UserID: \(todo.userId)",
-                            isCompleted: false   // например, новые задачи считаем невыполненными
-                        )
-                    }
-                    // Ставим флаг, что первый запуск уже был
-                    UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+               networkService.fetchTodos { [weak self] result in
+                   guard let self = self else { return }
 
-                case .failure(let error):
-                    print("Ошибка загрузки API: \(error)")
-                }
+                   switch result {
 
-                // Загружаем все задачи из CoreData
-                self.tasks = self.storage.fetchTasks()
-                completion()
-            }
-        } else {
-            // Не первый запуск → просто грузим задачи из CoreData
-            tasks = storage.fetchTasks()
-            completion()
-        }
+                   case .success(let todos):
+
+                       self.storage.saveTodosFromAPI(todos)
+
+                       UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+
+                   case .failure(let error):
+
+                       print("Ошибка загрузки JSON:", error)
+
+                   }
+
+                   self.tasks = self.storage.fetchTasks()
+                   completion()
+               }
+
+           } else {
+
+               tasks = storage.fetchTasks()
+               completion()
+
+           }
     }
 
     // MARK: - Добавление новой задачи
@@ -101,10 +133,14 @@ class TasksViewModel {
 
     // MARK: - Обновление статуса задачи
     func updateTaskCompleted(at index: Int, completed: Bool) {
+//        guard tasks.indices.contains(index) else { return }
+//        let task = tasks[index]
+//        storage.updateTask(task, completed: completed)
+//        tasks = storage.fetchTasks()
         guard tasks.indices.contains(index) else { return }
-        let task = tasks[index]
-        storage.updateTask(task, completed: completed)
-        tasks = storage.fetchTasks()
+            let task = tasks[index]
+            storage.updateTask(task, completed: completed)
+            tasks[index] = task
     }
 
     // MARK: - Поиск задач

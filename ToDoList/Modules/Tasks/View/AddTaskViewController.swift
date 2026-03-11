@@ -6,14 +6,33 @@
 //
 
 import UIKit
+import CoreData 
 
+//protocol AddTaskViewControllerDelegate: AnyObject {
+//    func didAddTask(title: String, description: String, isCompleted: Bool)
+//}
 protocol AddTaskViewControllerDelegate: AnyObject {
-    func didAddTask(title: String, description: String, isCompleted: Bool)
+    func didAddTask(_ task: TaskEntity)
 }
 
 class AddTaskViewController: UIViewController, UITextViewDelegate {
+    
+    var existingTask: TaskEntity?
+    var isEditingTask = false
+    var showCompletedSwitch = false
+    var showShareButton = false
 
     weak var delegate: AddTaskViewControllerDelegate?
+    
+    private let shareButton: UIButton = {
+        let btn = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let image = UIImage(systemName: "square.and.arrow.up", withConfiguration: config)
+        btn.setImage(image, for: .normal)
+        btn.tintColor = .systemYellow
+        btn.layer.cornerRadius = 20
+        return btn
+    }()
     
     private let titleLabel: UILabel = {
         let tl = UILabel()
@@ -104,6 +123,25 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         descriptionTextView.delegate = self
         setupViews()
         
+        // Заполняем поля, если редактируем
+        if let task = existingTask {
+            titleTextField.text = task.title
+            descriptionTextView.text = task.taskDescription
+            descriptionPlaceholder.isHidden = !descriptionTextView.text.isEmpty
+            completedSwitch.isOn = task.isCompleted
+        }
+        
+        if isEditingTask {
+            saveButton.setTitle("Изменить", for: .normal)
+        } else {
+            saveButton.setTitle("Добавить", for: .normal)
+        }
+        
+        completedSwitch.isHidden = !showCompletedSwitch
+        completedLabel.isHidden = !showCompletedSwitch
+            
+        shareButton.isHidden = !showShareButton
+        
         // Добавляем распознаватель жестов
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false // чтобы не блокировать другие нажатия
@@ -119,12 +157,13 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         
         // Добавляем subviews
-        [titleTextField, descriptionTextView, completedLabel, completedSwitch, saveButton, cancelButton, titleLabel, descriptionLabel, descriptionPlaceholder].forEach {
+        [titleTextField, descriptionTextView, completedLabel, completedSwitch, saveButton, cancelButton, titleLabel, descriptionLabel, descriptionPlaceholder, shareButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
 
         NSLayoutConstraint.activate([
+            
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
             
@@ -141,10 +180,13 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
             descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
             
+            shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 20),
+            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+            
             descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
             descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
 
-            completedLabel.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 40),
+            completedLabel.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 75),
             completedLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
 
             completedSwitch.centerYAnchor.constraint(equalTo: completedLabel.centerYAnchor),
@@ -159,17 +201,62 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             saveButton.trailingAnchor.constraint(equalTo: descriptionTextView.trailingAnchor),
             saveButton.heightAnchor.constraint(equalToConstant: 50),
             saveButton.widthAnchor.constraint(equalToConstant: 150),
+            
         ])
 
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+    }
+    
+    @objc private func shareTapped() {
+        guard let title = titleTextField.text, !title.isEmpty else { return }
+        let description = descriptionTextView.text ?? ""
+        let date = Date()
+        
+        // Форматируем дату в строку
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        let dateString = dateFormatter.string(from: date)
+        
+        // Формируем текст для шаринга
+        let shareText = """
+        Задача: \(title)
+        Описание: \(description)
+        Дата: \(dateString)
+        """
+        
+        let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
+        activityVC.popoverPresentationController?.sourceView = self.view // для iPad
+        present(activityVC, animated: true)
     }
 
     @objc private func saveTapped() {
         guard let title = titleTextField.text, !title.isEmpty else { return }
         let description = descriptionTextView.text ?? ""
         let isCompleted = completedSwitch.isOn
-        delegate?.didAddTask(title: title, description: description, isCompleted: isCompleted)
-        dismiss(animated: true)
+//        delegate?.didAddTask(title: title, description: description, isCompleted: isCompleted)
+//        dismiss(animated: true)
+        
+        if isEditingTask, let task = existingTask {
+                // Редактируем существующую задачу
+                task.title = title
+                task.taskDescription = description
+                task.isCompleted = isCompleted
+                CoreDataManager.shared.saveContext()
+                delegate?.didAddTask(task)
+            } else {
+                // Создаем новую задачу
+                let newTask = TaskEntity(context: CoreDataManager.shared.context)
+                newTask.title = title
+                newTask.taskDescription = description
+                newTask.isCompleted = isCompleted
+                newTask.order = Int64(CoreDataManager.shared.fetchTasks().count)
+                CoreDataManager.shared.saveContext()
+                delegate?.didAddTask(newTask)
+            }
+            
+            dismiss(animated: true)
     }
     
     @objc private func cancelTapped() {
