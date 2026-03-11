@@ -51,7 +51,7 @@ class TasksViewController: UIViewController,
     private let tasksCountLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .medium)
-        label.textColor = .gray
+        label.textColor = .black
         label.textAlignment = .center
         return label
     }()
@@ -59,9 +59,9 @@ class TasksViewController: UIViewController,
     // Фон для количества задач
     private let tasksCountBackground: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.black
+        view.backgroundColor = UIColor.systemYellow
         view.layer.cornerRadius = 14
-        view.alpha = 0.7
+        //view.alpha = 0.7
         return view
     }()
 
@@ -352,33 +352,6 @@ class TasksViewController: UIViewController,
     // Обновляем модель при перемещении
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         
-//        // Получаем задачу, которую перемещаем
-//        let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
-//        
-//        // Вставляем её на новое место
-//        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
-//        
-//        // Обновляем CoreData порядок (опционально, если хочешь сохранять)
-//        viewModel.updateTasksOrder()
-//        
-//        // Обновляем количество задач или UI, если нужно
-//        updateTasksCount()
-        
-        // 1. Перемещаем элемент в массиве
-//        let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
-//        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
-//            
-//        // 2. Обновляем порядок всех задач
-//        for (index, task) in viewModel.tasks.enumerated() {
-//            task.order = Int64(index)
-//        }
-//            
-//        // 3. Сохраняем изменения в CoreData
-//        CoreDataManager.shared.saveContext()
-//            
-//        // 4. Обновляем UI, если нужно
-//        updateTasksCount()
-        
         guard sourceIndexPath != destinationIndexPath else { return }
 
         let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
@@ -452,16 +425,26 @@ extension TasksViewController: UITableViewDropDelegate {
 extension TasksViewController: AddTaskViewControllerDelegate {
 
     func didAddTask(title: String, description: String, isCompleted: Bool) {
-        // Если метод addTask требует userId:
-        viewModel.addTask(
-            title: title,
-            userId: 0, // можно оставить 0 или убрать полностью из метода
-            description: description,
-            isCompleted: isCompleted
-        )
+    
+        
+        // 1️⃣ Добавляем задачу через ViewModel
+        viewModel.addTask(title: title,
+                            userId: 0,
+                            description: description,
+                            isCompleted: isCompleted)
 
+        // 2️⃣ Перезагружаем таблицу
         tableView.reloadData()
+                
+        // 3️⃣ Прокручиваем к первой ячейке
+        if !viewModel.tasks.isEmpty {
+            let indexPath = IndexPath(row: 0, section: 0)
+            tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+        }
+
+        // 4️⃣ Обновляем счетчик задач
         updateTasksCount()
+            
     }
 }
 
