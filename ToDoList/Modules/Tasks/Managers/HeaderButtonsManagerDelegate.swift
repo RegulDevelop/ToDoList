@@ -17,6 +17,9 @@ class HeaderButtonsManager {
     
     private init() {}
     
+    private let doneOnlyKey = "doneOnlyFilter"
+    private let notDoneOnlyKey = "notDoneOnlyFilter"
+    
     weak var delegate: HeaderButtonsManagerDelegate?
     
     // MARK: - Состояния кнопок

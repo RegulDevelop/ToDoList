@@ -24,10 +24,10 @@
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string></string>
+	<string>Used for authorization in the application</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string></string>
+	<string>Used for voice task search</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string></string>
+	<string>We need a microphone for voice task search</string>
 </dict>
 </plist>

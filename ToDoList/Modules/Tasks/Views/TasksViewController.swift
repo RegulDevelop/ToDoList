@@ -71,7 +71,7 @@ class TasksViewController: UIViewController,
     private let headerNotDoneOnlyButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-        let image = UIImage(systemName: "xmark.square", withConfiguration: config)
+        let image = UIImage(systemName: "circle.square", withConfiguration: config)
         button.setImage(image, for: .normal)
         button.tintColor = .systemGray
         return button
@@ -87,10 +87,20 @@ class TasksViewController: UIViewController,
         return button
     }()
     
+    // Кнопка сортировки
+    private let sortButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
+        let image = UIImage(systemName: "list.bullet.circle", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemYellow
+        return button
+    }()
+    
     // Количество задач
     private let tasksCountLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.font = .systemFont(ofSize: 14, weight: .medium)
         label.textColor = .black
         label.textAlignment = .center
         return label
@@ -142,8 +152,9 @@ class TasksViewController: UIViewController,
                             // Загружаем задачи
                             self.viewModel.loadTasks {
                                 DispatchQueue.main.async {
-                                    self.tableView.reloadData()
-                                    self.updateTasksCount()
+//                                    self.tableView.reloadData()
+//                                    self.updateTasksCount()
+                                    self.filterTasks()
                                 }
                             }
                         } else {
@@ -155,19 +166,19 @@ class TasksViewController: UIViewController,
             } else {
                 // Face ID выключен — сразу скрываем overlay и показываем задачи
                 authOverlayView.removeFromSuperview()
-//                viewModel.loadTasks { [weak self] in
-//                    DispatchQueue.main.async {
-//                        self?.tableView.reloadData()
-//                        self?.updateTasksCount()
-//                    }
-//                }
             }
-        // Загружаем задачи
+//        // Загружаем задачи
+//        viewModel.loadTasks { [weak self] in
+//            DispatchQueue.main.async {
+//                self?.filteredTasks = self?.viewModel.tasks ?? []
+//                self?.tableView.reloadData()
+//                self?.updateTasksCount()
+//            }
+//        }
+        
         viewModel.loadTasks { [weak self] in
             DispatchQueue.main.async {
-                self?.filteredTasks = self?.viewModel.tasks ?? []
-                self?.tableView.reloadData()
-                self?.updateTasksCount()
+                self?.filterTasks()   // ← применяем сохранённый фильтр
             }
         }
     }
@@ -175,34 +186,13 @@ class TasksViewController: UIViewController,
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
+        
+        filterTasks()
     }
     
     // MARK: - Настройки поиска
     // Когда меняется текст в поиске
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if searchText.isEmpty {
-//            isSearching = false
-//        } else {
-//            isSearching = true
-//            filteredTasks = viewModel.tasks.filter {
-//                $0.title?.lowercased().contains(searchText.lowercased()) ?? false
-//            }
-//        }
-//        tableView.reloadData()
-        
-//        if searchText.isEmpty {
-//                isSearching = false
-//                filterTasks()   // ← возвращаем полный список (или фильтр Done/NotDone)
-//                return
-//            }
-//
-//            isSearching = true
-//
-//            filteredTasks = viewModel.tasks.filter {
-//                $0.title?.lowercased().contains(searchText.lowercased()) ?? false
-//            }
-//
-//            tableView.reloadData()
         
         // Пока идет голосовой поиск, не фильтруем вручную
             guard !isVoiceSearching else { return }
@@ -222,16 +212,6 @@ class TasksViewController: UIViewController,
 
     // Нажатие на кнопку "Отмена"
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-//        isSearching = false
-//        searchBar.text = ""
-//        searchBar.resignFirstResponder() // скрываем клавиатуру
-//        tableView.reloadData()
-        
-//        isSearching = false
-//            isVoiceSearching = false
-//            searchBar.text = ""
-//            searchBar.resignFirstResponder()
-//            filterTasks()
         
         if isVoiceSearching {
                 stopVoiceSearch()
@@ -344,6 +324,7 @@ class TasksViewController: UIViewController,
     private func setupFooter() {
 
         view.addSubview(addButton)
+        view.addSubview(sortButton)
         view.addSubview(tasksCountBackground)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(scrollToTop))
@@ -352,10 +333,14 @@ class TasksViewController: UIViewController,
         
         tasksCountBackground.addSubview(tasksCountLabel)
         addButton.translatesAutoresizingMaskIntoConstraints = false
+        sortButton.translatesAutoresizingMaskIntoConstraints = false
         tasksCountLabel.translatesAutoresizingMaskIntoConstraints = false
         tasksCountBackground.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
+            
+            sortButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            sortButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
             
             addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
             addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
@@ -363,13 +348,14 @@ class TasksViewController: UIViewController,
             tasksCountBackground.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             tasksCountBackground.centerYAnchor.constraint(equalTo: addButton.centerYAnchor),
             tasksCountBackground.heightAnchor.constraint(equalToConstant: 40),
-            tasksCountBackground.widthAnchor.constraint(equalToConstant: 180),
+            tasksCountBackground.widthAnchor.constraint(equalToConstant: 190),
 
             tasksCountLabel.centerXAnchor.constraint(equalTo: tasksCountBackground.centerXAnchor),
             tasksCountLabel.centerYAnchor.constraint(equalTo: tasksCountBackground.centerYAnchor)
         ])
 
         addButton.addTarget(self, action: #selector(addTaskTapped), for: .touchUpInside)
+        sortButton.addTarget(self, action: #selector(showSortMenu), for: .touchUpInside)
        }
     
     // Настраиваем действия кнопок Footer
@@ -465,37 +451,68 @@ class TasksViewController: UIViewController,
     
     // faceID
     @objc private func faceIDTapped() {
-        HeaderButtonsManager.shared.toggleFaceID()
-            updateHeaderButtonUI()
-            
-            // Проверяем симулятор
-            #if targetEnvironment(simulator)
-            print("Face ID недоступен на симуляторе")
-            HeaderButtonsManager.shared.isFaceIDEnabled = false
-            updateHeaderButtonUI()
-            return
-            #endif
-            
-            // Проверяем доступность Face ID
-            guard FaceIDManager.shared.isFaceIDAvailable() else {
-                let alert = UIAlertController(title: "Ошибка", message: "Face ID недоступен на этом устройстве.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Ок", style: .default))
-                present(alert, animated: true)
-                HeaderButtonsManager.shared.isFaceIDEnabled = false
-                updateHeaderButtonUI()
-                return
-            }
-            
-            // Запуск Face ID
-            FaceIDManager.shared.authenticateUser { success, error in
-                if success {
-                    print("Face ID прошёл успешно")
-                } else {
-                    print("Face ID не прошёл или отменён")
-                    HeaderButtonsManager.shared.isFaceIDEnabled = false
-                    self.updateHeaderButtonUI()
-                }
-            }
+//        HeaderButtonsManager.shared.toggleFaceID()
+//            updateHeaderButtonUI()
+//            
+//            // Проверяем симулятор
+//            #if targetEnvironment(simulator)
+//            print("Face ID недоступен на симуляторе")
+//            HeaderButtonsManager.shared.isFaceIDEnabled = false
+//            updateHeaderButtonUI()
+//            return
+//            #endif
+//            
+//            // Проверяем доступность Face ID
+//            guard FaceIDManager.shared.isFaceIDAvailable() else {
+//                let alert = UIAlertController(title: "Ошибка", message: "Face ID недоступен на этом устройстве.", preferredStyle: .alert)
+//                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+//                present(alert, animated: true)
+//                HeaderButtonsManager.shared.isFaceIDEnabled = false
+//                updateHeaderButtonUI()
+//                return
+//            }
+//            
+//            // Запуск Face ID
+//            FaceIDManager.shared.authenticateUser { success, error in
+//                if success {
+//                    print("Face ID прошёл успешно")
+//                } else {
+//                    print("Face ID не прошёл или отменён")
+//                    HeaderButtonsManager.shared.isFaceIDEnabled = false
+//                    self.updateHeaderButtonUI()
+//                }
+//            }
+        
+#if targetEnvironment(simulator)
+  print("Face ID недоступен на симуляторе")
+  return
+  #endif
+
+  guard FaceIDManager.shared.isFaceIDAvailable() else {
+      let alert = UIAlertController(
+          title: "Ошибка",
+          message: "Face ID недоступен на этом устройстве.",
+          preferredStyle: .alert
+      )
+      alert.addAction(UIAlertAction(title: "Ок", style: .default))
+      present(alert, animated: true)
+      return
+  }
+
+  FaceIDManager.shared.authenticateUser { success, error in
+      DispatchQueue.main.async {
+          if success {
+
+              HeaderButtonsManager.shared.isFaceIDEnabled.toggle()
+              self.updateHeaderButtonUI()
+
+          } else {
+
+              HeaderButtonsManager.shared.isFaceIDEnabled = false
+              self.updateHeaderButtonUI()
+          }
+      }
+  }
     }
     
     // Скрывает экран пока не прошла проверку face id
@@ -530,14 +547,6 @@ class TasksViewController: UIViewController,
         filterTasks()
         updateHeaderButtonUI()
     }
-//
-//    // languageTapped
-//    @objc private func languageTapped() {
-//        // Пример переключения языка
-//        let newLang = HeaderButtonsManager.shared.selectedLanguage == "en" ? "ru" : "en"
-//        HeaderButtonsManager.shared.setLanguage(newLang)
-//        updateHeaderButtonUI()
-//    }
     
     // Обновление цвета кнопок по состоянию
     private func updateHeaderButtonUI() {
@@ -557,28 +566,86 @@ class TasksViewController: UIViewController,
                 filteredTasks = viewModel.tasks
             }
             
-            isSearching = false
-            tableView.reloadData()
+        isSearching = false
+        tableView.reloadData()
+        updateTasksCount()
     }
     
     private func updateTasksCount() {
-        let count = viewModel.tasks.count
-        tasksCountLabel.text = "Всего задач: \(count)"
+//        let count = viewModel.tasks.count
+//        tasksCountLabel.text = "Всего задач: \(count)"
+        
+        let count: Int
+            let text: String
+
+            if HeaderButtonsManager.shared.isDoneOnlyEnabled {
+                count = viewModel.tasks.filter { $0.isCompleted }.count
+                text = "Завершено задач: \(count)"
+            } else if HeaderButtonsManager.shared.isNotDoneOnlyEnabled {
+                count = viewModel.tasks.filter { !$0.isCompleted }.count
+                text = "Не завершено задач: \(count)"
+            } else {
+                count = viewModel.tasks.count
+                text = "Всего задач: \(count)"
+            }
+
+            tasksCountLabel.text = text
     }
     
+    // MARK: - Сортировка
     // Скрол таблицы при нажатии на tasksCountBackground
     @objc private func scrollToTop() {
         guard !viewModel.tasks.isEmpty else { return }
         let topIndexPath = IndexPath(row: 0, section: 0)
         tableView.scrollToRow(at: topIndexPath, at: .top, animated: true)
     }
+    
+    @objc private func showSortMenu() {
+        
+        let sortAZ = UIAction(title: "От А до Я", image: UIImage(systemName: "textformat.abc")) { _ in
+            print("Сортировка А-Я")
+        }
+        
+        let sortZA = UIAction(title: "От Я до А", image: UIImage(systemName: "textformat.abc.dottedunderline")) { _ in
+            print("Сортировка Я-А")
+        }
+
+        let sortByDateUp = UIAction(title: "По дате \u{2191}", image: UIImage(systemName: "calendar")) { _ in
+            print("Сортировка по дате по возрастанию")
+        }
+
+        let sortByDateDown = UIAction(title: "По дате \u{2193}", image: UIImage(systemName: "calendar")) { _ in
+            print("Сортировка по дате по убыванию")
+        }
+
+        let menu = UIMenu(title: "Сортировка", children: [
+            sortByDateDown,
+            sortByDateUp,
+            sortZA,
+            sortAZ
+        ])
+
+        sortButton.menu = menu
+        sortButton.showsMenuAsPrimaryAction = true
+    }
 
 
     // MARK: - Добавление новой задачи
     @objc private func addTaskTapped() {
         
+//        let addVC = AddTaskViewController()
+//            addVC.delegate = self
+//
+//            if let sheet = addVC.sheetPresentationController {
+//                sheet.detents = [.large()]
+//                sheet.prefersGrabberVisible = true
+//            }
+//
+//            present(addVC, animated: true)
+        
         let addVC = AddTaskViewController()
             addVC.delegate = self
+            addVC.isEditingTask = false  // Добавление новой задачи
 
             if let sheet = addVC.sheetPresentationController {
                 sheet.detents = [.large()]
@@ -614,23 +681,6 @@ class TasksViewController: UIViewController,
     // Удаление свайпом
     func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-//        let task = viewModel.tasks[indexPath.row]
-//            let completeAction = UIContextualAction(
-//                style: .normal,
-//                title: task.isCompleted ? "Снять" : "Выполнено"
-//            ) { [weak self] _, _, completionHandler in
-//                guard let self = self else { return }
-//                self.viewModel.updateTaskCompleted(at: indexPath.row, completed: !task.isCompleted)
-//                tableView.reloadRows(at: [indexPath], with: .automatic)
-//                completionHandler(true)
-//            }
-//            completeAction.backgroundColor = .systemYellow
-//            completeAction.image = UIImage(systemName: task.isCompleted ? "xmark.circle" : "checkmark.circle")
-//            
-//            let config = UISwipeActionsConfiguration(actions: [completeAction])
-//            config.performsFirstActionWithFullSwipe = true
-//            return config
-        
         let task = filteredTasks[indexPath.row]
 
             let completeAction = UIContextualAction(
@@ -659,19 +709,6 @@ class TasksViewController: UIViewController,
     
     // Свайп влево → удаление задачи
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-//        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-//            guard let self = self else { return }
-//            self.viewModel.deleteTask(at: indexPath.row)
-//            tableView.deleteRows(at: [indexPath], with: .automatic)
-//            self.updateTasksCount()
-//            completionHandler(true)
-//        }
-//        deleteAction.backgroundColor = .systemRed
-//        deleteAction.image = UIImage(systemName: "trash.fill")
-//        
-//        let config = UISwipeActionsConfiguration(actions: [deleteAction])
-//        config.performsFirstActionWithFullSwipe = true
-//        return config
         
         let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
 
@@ -705,28 +742,57 @@ class TasksViewController: UIViewController,
     // Отмечаем/снимаем задачу как выполненную
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        // Выбираем задачу в зависимости от поиска
-//        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
-        let task = filteredTasks[indexPath.row]
-            
-        let addVC = AddTaskViewController()
-        addVC.isEditingTask = true
-        addVC.existingTask = task
-        addVC.showCompletedSwitch = true
-        addVC.showShareButton = true
-        addVC.delegate = self
-
-        if let sheet = addVC.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-        }
-
-        present(addVC, animated: true)
+        //        // Выбираем задачу в зависимости от поиска
+        //        let task = filteredTasks[indexPath.row]
+        //
+        //        let addVC = AddTaskViewController()
+        //        addVC.isEditingTask = true
+        //        addVC.existingTask = task
+        //        addVC.showCompletedSwitch = true
+        //        addVC.showShareButton = true
+        //        addVC.delegate = self
+        //
+        //        if let sheet = addVC.sheetPresentationController {
+        //            sheet.detents = [.large()]
+        //            sheet.prefersGrabberVisible = true
+        //        }
+        //
+        //        present(addVC, animated: true)
+        
+        
+                let task = filteredTasks[indexPath.row]
+                    let addVC = AddTaskViewController()
+                    addVC.delegate = self
+                    addVC.isEditingTask = true          // Редактируем задачу
+                    addVC.existingTask = task
+                    addVC.showCompletedSwitch = true
+                    addVC.showShareButton = true
+        
+                    if addVC.isEditingTask {
+                        // Редактирование — fullScreen, не поднимается sheet
+                        addVC.modalPresentationStyle = .formSheet
+                    } else {
+                        // Добавление новой задачи — большой sheet
+                        if let sheet = addVC.sheetPresentationController {
+                            sheet.detents = [.large()]
+                            sheet.prefersGrabberVisible = true
+                        }
+                    }
+        
+                    present(addVC, animated: true)
+        
+        
     }
     
     // Разрешаем редактирование ячеек (чтобы включить drag & drop)
     func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        return true
+
+//        return !isSearching && !HeaderButtonsManager.shared.isDoneOnlyEnabled && !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
+        
+        // Разрешаем перемещение только если таблица не фильтруется
+        return !isSearching &&
+               !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
+               !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
     }
     
     // Обновляем модель при перемещении
@@ -734,34 +800,63 @@ class TasksViewController: UIViewController,
         
         guard sourceIndexPath != destinationIndexPath else { return }
 
-        let movedTask = viewModel.tasks.remove(at: sourceIndexPath.row)
-        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
-            
-        // Обновляем порядок
-        for (index, task) in viewModel.tasks.enumerated() {
-            task.order = Int64(index)
-        }
-            
-        CoreDataManager.shared.saveContext()
-            
-        // Не нужно reloadData, UIKit сам обновляет позицию ячейки
-        updateTasksCount()
+            let movedTask = filteredTasks[sourceIndexPath.row]
+
+            // Находим индексы в основном массиве
+            if let sourceIndex = viewModel.tasks.firstIndex(of: movedTask) {
+                // Если destination выходит за пределы filteredTasks, ставим в конец
+                let destinationTask = filteredTasks[min(destinationIndexPath.row, filteredTasks.count - 1)]
+                let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) ?? viewModel.tasks.count - 1
+                
+                viewModel.tasks.remove(at: sourceIndex)
+                viewModel.tasks.insert(movedTask, at: destinationIndex)
+
+                // Обновляем порядок
+                for (index, task) in viewModel.tasks.enumerated() {
+                    task.order = Int64(index)
+                }
+                
+                CoreDataManager.shared.saveContext()
+                filterTasks() // ← обновляем отображаемый массив
+                updateTasksCount()
+            }
     }
+    
+    
 }
 
 extension TasksViewController: UITableViewDragDelegate {
 
+//    func tableView(_ tableView: UITableView,
+//                       itemsForBeginning session: UIDragSession,
+//                       at indexPath: IndexPath) -> [UIDragItem] {
+//            
+//        let task = viewModel.tasks[indexPath.row]
+//        let titleString: NSString = task.title as NSString? ?? "" // <-- явный тип
+//        let itemProvider = NSItemProvider(object: titleString)
+//        let dragItem = UIDragItem(itemProvider: itemProvider)
+//        dragItem.localObject = task
+//        return [dragItem]
+//    }
+    
     func tableView(_ tableView: UITableView,
-                       itemsForBeginning session: UIDragSession,
-                       at indexPath: IndexPath) -> [UIDragItem] {
-            
-        let task = viewModel.tasks[indexPath.row]
-        let titleString: NSString = task.title as NSString? ?? "" // <-- явный тип
-        let itemProvider = NSItemProvider(object: titleString)
-        let dragItem = UIDragItem(itemProvider: itemProvider)
-        dragItem.localObject = task
-        return [dragItem]
-    }
+                      itemsForBeginning session: UIDragSession,
+                      at indexPath: IndexPath) -> [UIDragItem] {
+           
+           // Разрешаем drag только если нет фильтра и поиска
+           guard !isSearching,
+                 !HeaderButtonsManager.shared.isDoneOnlyEnabled,
+                 !HeaderButtonsManager.shared.isNotDoneOnlyEnabled else {
+               return []
+           }
+           
+           let task = viewModel.tasks[indexPath.row]
+           let titleString: NSString = task.title as NSString? ?? ""
+           let itemProvider = NSItemProvider(object: titleString)
+           let dragItem = UIDragItem(itemProvider: itemProvider)
+           dragItem.localObject = task
+           return [dragItem]
+       }
 }
 
 extension TasksViewController: UITableViewDropDelegate {
@@ -771,61 +866,50 @@ extension TasksViewController: UITableViewDropDelegate {
         
         guard let destinationIndexPath = coordinator.destinationIndexPath else { return }
 
-        coordinator.items.forEach { dropItem in
-            if let task = dropItem.dragItem.localObject as? TaskEntity {
-                
-                // Удаляем с исходного места
-                if let sourceIndex = viewModel.tasks.firstIndex(of: task) {
-                    viewModel.tasks.remove(at: sourceIndex)
+            coordinator.items.forEach { dropItem in
+                if let task = dropItem.dragItem.localObject as? TaskEntity {
+                    // Удаляем с исходного места
+                    if let sourceIndex = viewModel.tasks.firstIndex(of: task) {
+                        viewModel.tasks.remove(at: sourceIndex)
+                    }
+
+                    // Находим индекс для вставки
+                    let destinationTask = filteredTasks[min(destinationIndexPath.row, filteredTasks.count - 1)]
+                    let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) ?? viewModel.tasks.count
+
+                    viewModel.tasks.insert(task, at: destinationIndex)
+
+                    // Обновляем order
+                    for (index, task) in viewModel.tasks.enumerated() {
+                        task.order = Int64(index)
+                    }
+
+                    CoreDataManager.shared.saveContext()
+                    filterTasks()
+                    updateTasksCount()
                 }
-                
-                // Вставляем на новое место
-                viewModel.tasks.insert(task, at: destinationIndexPath.row)
-                
-                // Обновляем order
-                for (index, task) in viewModel.tasks.enumerated() {
-                    task.order = Int64(index)
-                }
-                
-                CoreDataManager.shared.saveContext()
-                
-                tableView.reloadData()
-                updateTasksCount()
             }
-        }
     }
 
     // Разрешаем перемещение только внутри таблицы
     func tableView(_ tableView: UITableView,
                    canHandle session: UIDropSession) -> Bool {
-        return session.localDragSession != nil
+
+//        return !isSearching && session.localDragSession != nil
+        
+        // Разрешаем drop только при локальном drag и отсутствии фильтра/поиска
+        return !isSearching &&
+               !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
+               !HeaderButtonsManager.shared.isNotDoneOnlyEnabled &&
+               session.localDragSession != nil
     }
+    
+    
 }
 
 extension TasksViewController: AddTaskViewControllerDelegate {
 
     func didAddTask(_ task: TaskEntity) {
-//        if let index = viewModel.tasks.firstIndex(of: task) {
-//            // Если задача уже есть → редактируем
-//            viewModel.tasks[index] = task
-//            tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-//        } else {
-//            // Добавление новой
-//            viewModel.tasks.insert(task, at: 0)
-//            tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
-//            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-//        }
-//        updateTasksCount()
-//        filterTasks()
-        
-//        if let index = viewModel.tasks.firstIndex(of: task) {
-//                viewModel.tasks[index] = task
-//            } else {
-//                viewModel.tasks.insert(task, at: 0)
-//            }
-//
-//            updateTasksCount()
-//            filterTasks()
         
         if let index = viewModel.tasks.firstIndex(of: task) {
                 viewModel.tasks[index] = task
