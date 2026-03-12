@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LocalAuthentication
 
 class TasksViewController: UIViewController,
                             UITableViewDataSource,
@@ -27,15 +28,45 @@ class TasksViewController: UIViewController,
         return label
     }()
     
-    // Нижний фон
-//    private let footerView: UIView = {
-//        let view = UIView()
-//        view.backgroundColor = UIColor.systemGray6
-//        view.layer.cornerRadius = 20
-//        view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner] // скругление сверху
-//        //view.alpha = 0.8
-//        return view
-//    }()
+    // Кнопка выбора языка
+    private let headerLanguageButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let image = UIImage(systemName: "globe", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemYellow
+        return button
+    }()
+    
+    // Кнопка Face-Id
+    private let headerFaceIdButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let image = UIImage(systemName: "faceid", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemGray
+        return button
+    }()
+    
+    // Кнопка сортировки только завершенные задачи
+    private let headerDoneOnlyButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let image = UIImage(systemName: "checkmark.square", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemGray
+        return button
+    }()
+    
+    // Кнопка сортировки только не завершенные задачи
+    private let headerNotDoneOnlyButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let image = UIImage(systemName: "xmark.square", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemGray
+        return button
+    }()
 
     // Кнопка добавления задачи
     private let addButton: UIButton = {
@@ -77,14 +108,51 @@ class TasksViewController: UIViewController,
         setupSearchBar()
         setupTableView()
         setupFooter()
+        setupHeaderButtonActions()
         
-        // Добавляем тап для закрытия клавиатуры
+        updateHeaderButtonUI()
         
-//        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-//        tapGesture.cancelsTouchesInView = false
-//        tableView.backgroundView = UIView() // обязательно создать
-//        tableView.backgroundView?.addGestureRecognizer(tapGesture)
-
+        view.addSubview(authOverlayView)
+            authOverlayView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                authOverlayView.topAnchor.constraint(equalTo: view.topAnchor),
+                authOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                authOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                authOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+            
+        // Авто-авторизация Face ID
+            if HeaderButtonsManager.shared.isFaceIDEnabled {
+                FaceIDManager.shared.authenticateUser { [weak self] success, error in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        if success {
+                            // Скрываем overlay только после успешной проверки
+                            self.authOverlayView.removeFromSuperview()
+                            
+                            // Загружаем задачи
+                            self.viewModel.loadTasks {
+                                DispatchQueue.main.async {
+                                    self.tableView.reloadData()
+                                    self.updateTasksCount()
+                                }
+                            }
+                        } else {
+                            // Если Face ID не прошёл — оставляем overlay и показываем alert
+                            self.showFaceIDFailedAlert()
+                        }
+                    }
+                }
+            } else {
+                // Face ID выключен — сразу скрываем overlay и показываем задачи
+                authOverlayView.removeFromSuperview()
+                viewModel.loadTasks { [weak self] in
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                        self?.updateTasksCount()
+                    }
+                }
+            }
         // Загружаем задачи
         viewModel.loadTasks { [weak self] in
             DispatchQueue.main.async {
@@ -133,12 +201,35 @@ class TasksViewController: UIViewController,
     
     // MARK: - Заголовок
     private func setupHeader() {
-        view.addSubview(headerLabel)
-        headerLabel.translatesAutoresizingMaskIntoConstraints = false
+        // Добавляем заголовок и кнопки
+        [headerLabel, headerLanguageButton, headerFaceIdButton, headerDoneOnlyButton, headerNotDoneOnlyButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
+
+        // Создаем горизонтальный стек только для кнопок
+        let headerButtonsStack = UIStackView(arrangedSubviews: [
+            headerFaceIdButton,
+            headerDoneOnlyButton,
+            headerNotDoneOnlyButton,
+            headerLanguageButton
+        ])
+        headerButtonsStack.axis = .horizontal
+        headerButtonsStack.spacing = 12
+        headerButtonsStack.alignment = .center
+        headerButtonsStack.distribution = .equalSpacing
+        headerButtonsStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerButtonsStack)
+
         NSLayoutConstraint.activate([
-            headerLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            // Заголовок слева
+            headerLabel.centerYAnchor.constraint(equalTo: headerButtonsStack.centerYAnchor),
             headerLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            headerLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+
+            // Стек кнопок справа
+            headerButtonsStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            headerButtonsStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            headerButtonsStack.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
     
@@ -182,17 +273,7 @@ class TasksViewController: UIViewController,
     
     // MARK: - Footer
     private func setupFooter() {
-//        view.addSubview(footerView)
-//        footerView.translatesAutoresizingMaskIntoConstraints = false
-//        NSLayoutConstraint.activate([
-//            footerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-//            footerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-//            footerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-//            footerView.heightAnchor.constraint(equalToConstant: 80)
-//        ])
 
-//        footerView.addSubview(addButton)
-//        footerView.addSubview(tasksCountBackground)
         view.addSubview(addButton)
         view.addSubview(tasksCountBackground)
         
@@ -206,15 +287,10 @@ class TasksViewController: UIViewController,
         tasksCountBackground.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-//            addButton.centerYAnchor.constraint(equalToSystemSpacingBelow: footerView.centerYAnchor, multiplier: 1),
-//            addButton.trailingAnchor.constraint(equalTo: footerView.trailingAnchor, constant: -20),
             
             addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
             addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
             
-            // Фон для tasksCountLabel
-//            tasksCountBackground.centerXAnchor.constraint(equalTo: footerView.centerXAnchor),
-//            tasksCountBackground.centerYAnchor.constraint(equalTo: footerView.centerYAnchor),
             tasksCountBackground.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             tasksCountBackground.centerYAnchor.constraint(equalTo: addButton.centerYAnchor),
             tasksCountBackground.heightAnchor.constraint(equalToConstant: 40),
@@ -226,6 +302,114 @@ class TasksViewController: UIViewController,
 
         addButton.addTarget(self, action: #selector(addTaskTapped), for: .touchUpInside)
        }
+    
+    // Настраиваем действия кнопок Footer
+    private func setupHeaderButtonActions() {
+        headerFaceIdButton.addTarget(self, action: #selector(faceIDTapped), for: .touchUpInside)
+//        headerDoneOnlyButton.addTarget(self, action: #selector(doneOnlyTapped), for: .touchUpInside)
+//        headerNotDoneOnlyButton.addTarget(self, action: #selector(notDoneOnlyTapped), for: .touchUpInside)
+//        headerLanguageButton.addTarget(self, action: #selector(languageTapped), for: .touchUpInside)
+    }
+    
+    // faceID
+    @objc private func faceIDTapped() {
+        HeaderButtonsManager.shared.toggleFaceID()
+            updateHeaderButtonUI()
+            
+            // Проверяем симулятор
+            #if targetEnvironment(simulator)
+            print("Face ID недоступен на симуляторе")
+            HeaderButtonsManager.shared.isFaceIDEnabled = false
+            updateHeaderButtonUI()
+            return
+            #endif
+            
+            // Проверяем доступность Face ID
+            guard FaceIDManager.shared.isFaceIDAvailable() else {
+                let alert = UIAlertController(title: "Ошибка", message: "Face ID недоступен на этом устройстве.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                present(alert, animated: true)
+                HeaderButtonsManager.shared.isFaceIDEnabled = false
+                updateHeaderButtonUI()
+                return
+            }
+            
+            // Запуск Face ID
+            FaceIDManager.shared.authenticateUser { success, error in
+                if success {
+                    print("Face ID прошёл успешно")
+                } else {
+                    print("Face ID не прошёл или отменён")
+                    HeaderButtonsManager.shared.isFaceIDEnabled = false
+                    self.updateHeaderButtonUI()
+                }
+            }
+    }
+    
+    // Скрывает экран пока не прошла проверку face id
+    private let authOverlayView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemBackground
+        view.alpha = 1.0
+        return view
+    }()
+    
+    // Показываем alert при неудаче face id
+    private func showFaceIDFailedAlert() {
+        let alert = UIAlertController(title: "Ошибка Face ID",
+                                      message: "Не удалось пройти аутентификацию",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Закрыть", style: .destructive) { _ in
+            exit(0) // можно закрыть приложение
+        })
+        present(alert, animated: true)
+    }
+
+//    // doneOnly
+//    @objc private func doneOnlyTapped() {
+//        HeaderButtonsManager.shared.toggleDoneOnly()
+//        filterTasks()
+//        updateHeaderButtonUI()
+//    }
+//
+//    // notDoneOnly
+//    @objc private func notDoneOnlyTapped() {
+//        HeaderButtonsManager.shared.toggleNotDoneOnly()
+//        filterTasks()
+//        updateHeaderButtonUI()
+//    }
+//
+//    // languageTapped
+//    @objc private func languageTapped() {
+//        // Пример переключения языка
+//        let newLang = HeaderButtonsManager.shared.selectedLanguage == "en" ? "ru" : "en"
+//        HeaderButtonsManager.shared.setLanguage(newLang)
+//        updateHeaderButtonUI()
+//    }
+    
+    // Обновление цвета кнопок по состоянию
+    private func updateHeaderButtonUI() {
+        headerFaceIdButton.tintColor = HeaderButtonsManager.shared.isFaceIDEnabled ? .systemYellow : .systemGray
+        headerDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isDoneOnlyEnabled ? .systemYellow : .systemGray
+        headerNotDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isNotDoneOnlyEnabled ? .systemYellow : .systemGray
+        headerLanguageButton.tintColor = HeaderButtonsManager.shared.selectedLanguage == "en" ? .systemGray : .systemYellow
+    }
+    
+    // Фильтрация задач для Done/NotDone
+    private func filterTasks() {
+        var tasks = viewModel.tasks
+        
+        if HeaderButtonsManager.shared.isDoneOnlyEnabled {
+            tasks = tasks.filter { $0.isCompleted }
+        }
+        
+        if HeaderButtonsManager.shared.isNotDoneOnlyEnabled {
+            tasks = tasks.filter { !$0.isCompleted }
+        }
+        
+        filteredTasks = tasks
+        tableView.reloadData()
+    }
     
     private func updateTasksCount() {
         let count = viewModel.tasks.count
@@ -242,32 +426,6 @@ class TasksViewController: UIViewController,
 
     // MARK: - Добавление новой задачи
     @objc private func addTaskTapped() {
-//        let alert = UIAlertController(title: "Новая задача", message: "Введите название задачи", preferredStyle: .alert)
-//        alert.addTextField { textField in
-//            textField.placeholder = "Название задачи"
-//        }
-//        alert.addTextField { textField in
-//            textField.placeholder = "UserID"
-//            textField.keyboardType = .numberPad
-//        }
-//
-//        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-//        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { [weak self] _ in
-//            guard let self = self else { return }
-//            let title = alert.textFields?[0].text ?? "Без названия"
-//            let userId = Int(alert.textFields?[1].text ?? "0") ?? 0
-//            self.viewModel.addTask(title: title, userId: userId)
-//            self.tableView.reloadData()
-//            self.updateTasksCount()
-//            self.tableView.reloadData()
-//                self.updateTasksCount()
-//                if self.isSearching {
-//                    self.searchBar.text = ""
-//                    self.isSearching = false
-//                }
-//        }))
-//
-//        present(alert, animated: true)
         
         let addVC = AddTaskViewController()
             addVC.delegate = self
@@ -304,19 +462,6 @@ class TasksViewController: UIViewController,
 
     // Удаление свайпом
     func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-
-    
-//            let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-//                guard let self = self else { return }
-//                self.viewModel.deleteTask(at: indexPath.row)
-//                tableView.deleteRows(at: [indexPath], with: .automatic)
-//                self.updateTasksCount()
-//                completionHandler(true)
-//            }
-//
-//            deleteAction.backgroundColor = .systemRed
-//            deleteAction.image = UIImage(systemName: "trash.fill")
-//            return UISwipeActionsConfiguration(actions: [deleteAction])
         
         let task = viewModel.tasks[indexPath.row]
             let completeAction = UIContextualAction(
@@ -356,41 +501,23 @@ class TasksViewController: UIViewController,
 
     // Отмечаем/снимаем задачу как выполненную
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-            
-//        let task = viewModel.tasks[indexPath.row]
-//
-//            let addVC = AddTaskViewController()
-//            addVC.isEditingTask = true          // включаем режим редактирования
-//            addVC.existingTask = task           // передаем задачу
-//            addVC.showCompletedSwitch = true    // показываем switch
-//            addVC.showShareButton = true        // показываем share
-//
-//            // Делаем делегатом self, чтобы при добавлении/изменении обновлять таблицу
-//            addVC.delegate = self
-//
-//            if let sheet = addVC.sheetPresentationController {
-//                sheet.detents = [.large()]
-//                sheet.prefersGrabberVisible = true
-//            }
-//
-//            present(addVC, animated: true)
         
         // Выбираем задачу в зависимости от поиска
-            let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
             
-            let addVC = AddTaskViewController()
-            addVC.isEditingTask = true
-            addVC.existingTask = task
-            addVC.showCompletedSwitch = true
-            addVC.showShareButton = true
-            addVC.delegate = self
+        let addVC = AddTaskViewController()
+        addVC.isEditingTask = true
+        addVC.existingTask = task
+        addVC.showCompletedSwitch = true
+        addVC.showShareButton = true
+        addVC.delegate = self
 
-            if let sheet = addVC.sheetPresentationController {
-                sheet.detents = [.large()]
-                sheet.prefersGrabberVisible = true
-            }
+        if let sheet = addVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
 
-            present(addVC, animated: true)
+        present(addVC, animated: true)
     }
     
     // Разрешаем редактирование ячеек (чтобы включить drag & drop)
@@ -473,42 +600,6 @@ extension TasksViewController: UITableViewDropDelegate {
 
 extension TasksViewController: AddTaskViewControllerDelegate {
 
-//    func didAddTask(title: String, description: String, isCompleted: Bool) {
-    
-//        viewModel.addTask(title: title,
-//                            userId: 0,
-//                            description: description,
-//                            isCompleted: isCompleted)
-//
-//        tableView.reloadData()
-//
-//        if !viewModel.tasks.isEmpty {
-//            let indexPath = IndexPath(row: 0, section: 0)
-//            tableView.scrollToRow(at: indexPath, at: .top, animated: true)
-//        }
-//
-//        updateTasksCount()
-//
-//        if let selectedIndexPath = tableView.indexPathForSelectedRow {
-//                // Обновляем существующую задачу
-//                let task = viewModel.tasks[selectedIndexPath.row]
-//                task.title = title
-//                task.taskDescription = description
-//                task.isCompleted = isCompleted
-//                CoreDataManager.shared.saveContext()
-//
-//                tableView.reloadRows(at: [selectedIndexPath], with: .automatic)
-//            } else {
-//                // Добавляем новую задачу
-//                viewModel.addTask(title: title, userId: 0, description: description, isCompleted: isCompleted)
-//                tableView.reloadData()
-//                if !viewModel.tasks.isEmpty {
-//                    let indexPath = IndexPath(row: 0, section: 0)
-//                    tableView.scrollToRow(at: indexPath, at: .top, animated: true)
-//                }
-//            }
-//            updateTasksCount()
-
     func didAddTask(_ task: TaskEntity) {
         if let index = viewModel.tasks.firstIndex(of: task) {
             // Если задача уже есть → редактируем
@@ -521,28 +612,6 @@ extension TasksViewController: AddTaskViewControllerDelegate {
             tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
         }
         updateTasksCount()
-        
-        //        // Обновляем или вставляем задачу в основной массив
-        //            if let mainIndex = viewModel.tasks.firstIndex(where: { $0.id == task.id }) {
-        //                viewModel.tasks[mainIndex] = task
-        //            } else {
-        //                viewModel.tasks.insert(task, at: 0)
-        //            }
-        //
-        //            // Если поиск активен — обновляем filteredTasks
-        //            if isSearching {
-        //                if let filteredIndex = filteredTasks.firstIndex(where: { $0.id == task.id }) {
-        //                    filteredTasks[filteredIndex] = task
-        //                } else if !viewModel.tasks.isEmpty {
-        //                    // Новая задача, подходящая под фильтр, вставляем сверху
-        //                    filteredTasks.insert(task, at: 0)
-        //                }
-        //            }
-        //
-        //            tableView.reloadData() // безопасно перезагрузить всю таблицу
-        //            updateTasksCount()
-        //            CoreDataManager.shared.saveContext()
-        //    }
         
     }
     
