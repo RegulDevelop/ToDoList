@@ -569,7 +569,8 @@ class TasksViewController: UIViewController,
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         // Выбираем задачу в зависимости от поиска
-        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+//        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+        let task = filteredTasks[indexPath.row]
             
         let addVC = AddTaskViewController()
         addVC.isEditingTask = true
