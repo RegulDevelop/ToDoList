@@ -54,7 +54,23 @@ class HeaderButtonsManager {
     
     // MARK: - Методы переключения
     func toggleFaceID() { isFaceIDEnabled.toggle() }
-    func toggleDoneOnly() { isDoneOnlyEnabled.toggle() }
-    func toggleNotDoneOnly() { isNotDoneOnlyEnabled.toggle() }
+    
+    // MARK: - Методы переключения
+    func toggleDoneOnly() {
+        if !isDoneOnlyEnabled {
+            isNotDoneOnlyEnabled = false // отключаем противоположную
+        }
+        isDoneOnlyEnabled.toggle()
+        delegate?.didUpdateButtonStates()
+    }
+
+    func toggleNotDoneOnly() {
+        if !isNotDoneOnlyEnabled {
+            isDoneOnlyEnabled = false // отключаем противоположную
+        }
+        isNotDoneOnlyEnabled.toggle()
+        delegate?.didUpdateButtonStates()
+    }
+    
     func setLanguage(_ code: String) { selectedLanguage = code }
 }

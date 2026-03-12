@@ -146,16 +146,17 @@ class TasksViewController: UIViewController,
             } else {
                 // Face ID выключен — сразу скрываем overlay и показываем задачи
                 authOverlayView.removeFromSuperview()
-                viewModel.loadTasks { [weak self] in
-                    DispatchQueue.main.async {
-                        self?.tableView.reloadData()
-                        self?.updateTasksCount()
-                    }
-                }
+//                viewModel.loadTasks { [weak self] in
+//                    DispatchQueue.main.async {
+//                        self?.tableView.reloadData()
+//                        self?.updateTasksCount()
+//                    }
+//                }
             }
         // Загружаем задачи
         viewModel.loadTasks { [weak self] in
             DispatchQueue.main.async {
+                self?.filteredTasks = self?.viewModel.tasks ?? []
                 self?.tableView.reloadData()
                 self?.updateTasksCount()
             }
@@ -170,15 +171,29 @@ class TasksViewController: UIViewController,
     // MARK: - Настройки поиска
     // Когда меняется текст в поиске
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+//        if searchText.isEmpty {
+//            isSearching = false
+//        } else {
+//            isSearching = true
+//            filteredTasks = viewModel.tasks.filter {
+//                $0.title?.lowercased().contains(searchText.lowercased()) ?? false
+//            }
+//        }
+//        tableView.reloadData()
+        
         if searchText.isEmpty {
-            isSearching = false
-        } else {
+                isSearching = false
+                filterTasks()   // ← возвращаем полный список (или фильтр Done/NotDone)
+                return
+            }
+
             isSearching = true
+
             filteredTasks = viewModel.tasks.filter {
                 $0.title?.lowercased().contains(searchText.lowercased()) ?? false
             }
-        }
-        tableView.reloadData()
+
+            tableView.reloadData()
     }
 
     // Нажатие на кнопку "Отмена"
@@ -306,8 +321,8 @@ class TasksViewController: UIViewController,
     // Настраиваем действия кнопок Footer
     private func setupHeaderButtonActions() {
         headerFaceIdButton.addTarget(self, action: #selector(faceIDTapped), for: .touchUpInside)
-//        headerDoneOnlyButton.addTarget(self, action: #selector(doneOnlyTapped), for: .touchUpInside)
-//        headerNotDoneOnlyButton.addTarget(self, action: #selector(notDoneOnlyTapped), for: .touchUpInside)
+        headerDoneOnlyButton.addTarget(self, action: #selector(doneOnlyTapped), for: .touchUpInside)
+        headerNotDoneOnlyButton.addTarget(self, action: #selector(notDoneOnlyTapped), for: .touchUpInside)
 //        headerLanguageButton.addTarget(self, action: #selector(languageTapped), for: .touchUpInside)
     }
     
@@ -365,19 +380,19 @@ class TasksViewController: UIViewController,
         present(alert, animated: true)
     }
 
-//    // doneOnly
-//    @objc private func doneOnlyTapped() {
-//        HeaderButtonsManager.shared.toggleDoneOnly()
-//        filterTasks()
-//        updateHeaderButtonUI()
-//    }
-//
-//    // notDoneOnly
-//    @objc private func notDoneOnlyTapped() {
-//        HeaderButtonsManager.shared.toggleNotDoneOnly()
-//        filterTasks()
-//        updateHeaderButtonUI()
-//    }
+    // doneOnly
+    @objc private func doneOnlyTapped() {
+        HeaderButtonsManager.shared.toggleDoneOnly()
+        filterTasks()
+        updateHeaderButtonUI()
+    }
+
+    // notDoneOnly
+    @objc private func notDoneOnlyTapped() {
+        HeaderButtonsManager.shared.toggleNotDoneOnly()
+        filterTasks()
+        updateHeaderButtonUI()
+    }
 //
 //    // languageTapped
 //    @objc private func languageTapped() {
@@ -397,18 +412,16 @@ class TasksViewController: UIViewController,
     
     // Фильтрация задач для Done/NotDone
     private func filterTasks() {
-        var tasks = viewModel.tasks
-        
         if HeaderButtonsManager.shared.isDoneOnlyEnabled {
-            tasks = tasks.filter { $0.isCompleted }
-        }
-        
-        if HeaderButtonsManager.shared.isNotDoneOnlyEnabled {
-            tasks = tasks.filter { !$0.isCompleted }
-        }
-        
-        filteredTasks = tasks
-        tableView.reloadData()
+                filteredTasks = viewModel.tasks.filter { $0.isCompleted }
+            } else if HeaderButtonsManager.shared.isNotDoneOnlyEnabled {
+                filteredTasks = viewModel.tasks.filter { !$0.isCompleted }
+            } else {
+                filteredTasks = viewModel.tasks
+            }
+            
+            isSearching = false
+            tableView.reloadData()
     }
     
     private func updateTasksCount() {
@@ -441,8 +454,9 @@ class TasksViewController: UIViewController,
     // MARK: - UITableViewDataSource
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        viewModel.tasks.count
-        return isSearching ? filteredTasks.count : viewModel.tasks.count
+
+//        return isSearching ? filteredTasks.count : viewModel.tasks.count
+        return filteredTasks.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -450,11 +464,11 @@ class TasksViewController: UIViewController,
             return UITableViewCell()
         }
 
-        // let task = viewModel.tasks[indexPath.row]
-        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+//        let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
+        let task = filteredTasks[indexPath.row]
         cell.selectionStyle = .none
         cell.configure(with: task)
-        //cell.showsReorderControl = true
+
         return cell
     }
 
@@ -463,39 +477,91 @@ class TasksViewController: UIViewController,
     // Удаление свайпом
     func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-        let task = viewModel.tasks[indexPath.row]
+//        let task = viewModel.tasks[indexPath.row]
+//            let completeAction = UIContextualAction(
+//                style: .normal,
+//                title: task.isCompleted ? "Снять" : "Выполнено"
+//            ) { [weak self] _, _, completionHandler in
+//                guard let self = self else { return }
+//                self.viewModel.updateTaskCompleted(at: indexPath.row, completed: !task.isCompleted)
+//                tableView.reloadRows(at: [indexPath], with: .automatic)
+//                completionHandler(true)
+//            }
+//            completeAction.backgroundColor = .systemYellow
+//            completeAction.image = UIImage(systemName: task.isCompleted ? "xmark.circle" : "checkmark.circle")
+//            
+//            let config = UISwipeActionsConfiguration(actions: [completeAction])
+//            config.performsFirstActionWithFullSwipe = true
+//            return config
+        
+        let task = filteredTasks[indexPath.row]
+
             let completeAction = UIContextualAction(
                 style: .normal,
                 title: task.isCompleted ? "Снять" : "Выполнено"
             ) { [weak self] _, _, completionHandler in
+                
                 guard let self = self else { return }
-                self.viewModel.updateTaskCompleted(at: indexPath.row, completed: !task.isCompleted)
-                tableView.reloadRows(at: [indexPath], with: .automatic)
+
+                if let index = self.viewModel.tasks.firstIndex(of: task) {
+                    self.viewModel.updateTaskCompleted(at: index, completed: !task.isCompleted)
+                }
+
+                self.filterTasks()
                 completionHandler(true)
             }
+
             completeAction.backgroundColor = .systemYellow
             completeAction.image = UIImage(systemName: task.isCompleted ? "xmark.circle" : "checkmark.circle")
-            
+
             let config = UISwipeActionsConfiguration(actions: [completeAction])
             config.performsFirstActionWithFullSwipe = true
+
             return config
     }
     
     // Свайп влево → удаление задачи
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-            guard let self = self else { return }
-            self.viewModel.deleteTask(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .automatic)
-            self.updateTasksCount()
-            completionHandler(true)
-        }
-        deleteAction.backgroundColor = .systemRed
-        deleteAction.image = UIImage(systemName: "trash.fill")
+//        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+//            guard let self = self else { return }
+//            self.viewModel.deleteTask(at: indexPath.row)
+//            tableView.deleteRows(at: [indexPath], with: .automatic)
+//            self.updateTasksCount()
+//            completionHandler(true)
+//        }
+//        deleteAction.backgroundColor = .systemRed
+//        deleteAction.image = UIImage(systemName: "trash.fill")
+//        
+//        let config = UISwipeActionsConfiguration(actions: [deleteAction])
+//        config.performsFirstActionWithFullSwipe = true
+//        return config
         
-        let config = UISwipeActionsConfiguration(actions: [deleteAction])
-        config.performsFirstActionWithFullSwipe = true
-        return config
+        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+
+                guard let self = self else { return }
+
+                // Берём задачу из отображаемого массива
+                let task = self.filteredTasks[indexPath.row]
+
+                // Находим её в основном массиве
+                if let index = self.viewModel.tasks.firstIndex(of: task) {
+                    self.viewModel.deleteTask(at: index)
+                }
+
+                // Пересчитываем отображаемые задачи
+                self.filterTasks()
+                self.updateTasksCount()
+
+                completionHandler(true)
+            }
+
+            deleteAction.backgroundColor = .systemRed
+            deleteAction.image = UIImage(systemName: "trash.fill")
+
+            let config = UISwipeActionsConfiguration(actions: [deleteAction])
+            config.performsFirstActionWithFullSwipe = true
+
+            return config
     
     }
 
@@ -601,18 +667,42 @@ extension TasksViewController: UITableViewDropDelegate {
 extension TasksViewController: AddTaskViewControllerDelegate {
 
     func didAddTask(_ task: TaskEntity) {
-        if let index = viewModel.tasks.firstIndex(of: task) {
-            // Если задача уже есть → редактируем
-            viewModel.tasks[index] = task
-            tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-        } else {
-            // Добавление новой
-            viewModel.tasks.insert(task, at: 0)
-            tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
-            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-        }
-        updateTasksCount()
+//        if let index = viewModel.tasks.firstIndex(of: task) {
+//            // Если задача уже есть → редактируем
+//            viewModel.tasks[index] = task
+//            tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+//        } else {
+//            // Добавление новой
+//            viewModel.tasks.insert(task, at: 0)
+//            tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+//            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+//        }
+//        updateTasksCount()
+//        filterTasks()
         
+//        if let index = viewModel.tasks.firstIndex(of: task) {
+//                viewModel.tasks[index] = task
+//            } else {
+//                viewModel.tasks.insert(task, at: 0)
+//            }
+//
+//            updateTasksCount()
+//            filterTasks()
+        
+        if let index = viewModel.tasks.firstIndex(of: task) {
+                viewModel.tasks[index] = task
+            } else {
+                viewModel.tasks.insert(task, at: 0)
+            }
+
+            updateTasksCount()
+            filterTasks()
+
+            // Прокрутка наверх
+            if !filteredTasks.isEmpty {
+                tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+
     }
     
 }
