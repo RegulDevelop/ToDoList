@@ -25,5 +25,9 @@
 	<string>Dark</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string></string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string></string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string></string>
 </dict>
 </plist>

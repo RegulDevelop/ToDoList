@@ -7,6 +7,8 @@
 
 import UIKit
 import LocalAuthentication
+import Speech
+import AVFoundation
 
 class TasksViewController: UIViewController,
                             UITableViewDataSource,
@@ -19,6 +21,13 @@ class TasksViewController: UIViewController,
     private let searchBar = UISearchBar()
     private var filteredTasks: [TaskEntity] = []
     private var isSearching = false
+    
+    // MARK: - Speech Recognition
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))!
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private let audioEngine = AVAudioEngine()
+    private var isVoiceSearching = false
     
     private let headerLabel: UILabel = {
         let label = UILabel()
@@ -181,27 +190,68 @@ class TasksViewController: UIViewController,
 //        }
 //        tableView.reloadData()
         
-        if searchText.isEmpty {
+//        if searchText.isEmpty {
+//                isSearching = false
+//                filterTasks()   // ← возвращаем полный список (или фильтр Done/NotDone)
+//                return
+//            }
+//
+//            isSearching = true
+//
+//            filteredTasks = viewModel.tasks.filter {
+//                $0.title?.lowercased().contains(searchText.lowercased()) ?? false
+//            }
+//
+//            tableView.reloadData()
+        
+        // Пока идет голосовой поиск, не фильтруем вручную
+            guard !isVoiceSearching else { return }
+
+            if searchText.isEmpty {
                 isSearching = false
-                filterTasks()   // ← возвращаем полный список (или фильтр Done/NotDone)
+                filterTasks()
                 return
             }
 
             isSearching = true
-
-            filteredTasks = viewModel.tasks.filter {
-                $0.title?.lowercased().contains(searchText.lowercased()) ?? false
+            filteredTasks = viewModel.tasks.filter { task in
+                task.title?.lowercased().contains(searchText.lowercased()) ?? false
             }
-
             tableView.reloadData()
     }
 
     // Нажатие на кнопку "Отмена"
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        isSearching = false
-        searchBar.text = ""
-        searchBar.resignFirstResponder() // скрываем клавиатуру
-        tableView.reloadData()
+//        isSearching = false
+//        searchBar.text = ""
+//        searchBar.resignFirstResponder() // скрываем клавиатуру
+//        tableView.reloadData()
+        
+//        isSearching = false
+//            isVoiceSearching = false
+//            searchBar.text = ""
+//            searchBar.resignFirstResponder()
+//            filterTasks()
+        
+        if isVoiceSearching {
+                stopVoiceSearch()
+                return
+            }
+
+            SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
+                DispatchQueue.main.async {
+                    switch authStatus {
+                    case .authorized:
+                        self?.isVoiceSearching = true
+                        self?.startRecording()
+                    case .denied, .restricted, .notDetermined:
+                        let alert = UIAlertController(title: "Ошибка", message: "Доступ к микрофону запрещён", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                        self?.present(alert, animated: true)
+                    @unknown default: break
+                    }
+                }
+            }
     }
 
     // Нажатие "Search" на клавиатуре
@@ -254,6 +304,10 @@ class TasksViewController: UIViewController,
         searchBar.delegate = self
         searchBar.searchBarStyle = .minimal
         searchBar.backgroundImage = UIImage()
+        
+        searchBar.showsBookmarkButton = true
+        searchBar.setImage(UIImage(systemName: "mic.fill"), for: .bookmark, state: .normal)
+        
         view.addSubview(searchBar)
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -324,6 +378,89 @@ class TasksViewController: UIViewController,
         headerDoneOnlyButton.addTarget(self, action: #selector(doneOnlyTapped), for: .touchUpInside)
         headerNotDoneOnlyButton.addTarget(self, action: #selector(notDoneOnlyTapped), for: .touchUpInside)
 //        headerLanguageButton.addTarget(self, action: #selector(languageTapped), for: .touchUpInside)
+    }
+    
+    // делегатский метод UISearchBarDelegate
+    func searchBarBookmarkButtonClicked(_ searchBar: UISearchBar) {
+        // Проверяем доступ к микрофону и распознаванию речи
+        SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
+            DispatchQueue.main.async {
+                switch authStatus {
+                case .authorized:
+                    self?.startRecording()
+                case .denied, .restricted, .notDetermined:
+                    let alert = UIAlertController(title: "Ошибка", message: "Доступ к микрофону запрещён", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                    self?.present(alert, animated: true)
+                @unknown default:
+                    break
+                }
+            }
+        }
+    }
+    
+    // Микрофон
+    private func startRecording() {
+        if audioEngine.isRunning {
+            stopRecording()
+            return
+        }
+        
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        
+        let node = audioEngine.inputNode
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let recognitionRequest = recognitionRequest else { return }
+        
+        recognitionRequest.shouldReportPartialResults = true
+        
+        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+            guard let self = self else { return }
+            
+            if let result = result {
+                self.searchBar.text = result.bestTranscription.formattedString
+                self.searchBar(self.searchBar, textDidChange: result.bestTranscription.formattedString)
+            }
+            
+            if error != nil || (result?.isFinal ?? false) {
+                self.stopRecording()
+            }
+        }
+        
+        let recordingFormat = node.outputFormat(forBus: 0)
+        node.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            self.recognitionRequest?.append(buffer)
+        }
+        
+        audioEngine.prepare()
+        try? audioEngine.start()
+        
+        searchBar.placeholder = "Говорите..."
+    }
+    
+    // Микрофон
+    private func stopRecording() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        
+        recognitionRequest = nil
+        recognitionTask = nil
+        
+        searchBar.placeholder = "Поиск задач"
+    }
+    
+    // Сброс микрофона
+    private func stopVoiceSearch() {
+        if audioEngine.isRunning {
+                stopRecording()
+            }
+            isVoiceSearching = false
+            searchBar.text = ""
+            isSearching = false
+            filterTasks()
     }
     
     // faceID
