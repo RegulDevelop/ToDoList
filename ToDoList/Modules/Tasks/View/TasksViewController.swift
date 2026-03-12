@@ -195,6 +195,11 @@ class TasksViewController: UIViewController,
 //        footerView.addSubview(tasksCountBackground)
         view.addSubview(addButton)
         view.addSubview(tasksCountBackground)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(scrollToTop))
+        tasksCountBackground.isUserInteractionEnabled = true
+        tasksCountBackground.addGestureRecognizer(tapGesture)
+        
         tasksCountBackground.addSubview(tasksCountLabel)
         addButton.translatesAutoresizingMaskIntoConstraints = false
         tasksCountLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -226,7 +231,13 @@ class TasksViewController: UIViewController,
         let count = viewModel.tasks.count
         tasksCountLabel.text = "Всего задач: \(count)"
     }
-
+    
+    // Скрол таблицы при нажатии на tasksCountBackground
+    @objc private func scrollToTop() {
+        guard !viewModel.tasks.isEmpty else { return }
+        let topIndexPath = IndexPath(row: 0, section: 0)
+        tableView.scrollToRow(at: topIndexPath, at: .top, animated: true)
+    }
 
 
     // MARK: - Добавление новой задачи
@@ -317,7 +328,7 @@ class TasksViewController: UIViewController,
                 tableView.reloadRows(at: [indexPath], with: .automatic)
                 completionHandler(true)
             }
-            completeAction.backgroundColor = .systemGreen
+            completeAction.backgroundColor = .systemYellow
             completeAction.image = UIImage(systemName: task.isCompleted ? "xmark.circle" : "checkmark.circle")
             
             let config = UISwipeActionsConfiguration(actions: [completeAction])
@@ -340,20 +351,38 @@ class TasksViewController: UIViewController,
         let config = UISwipeActionsConfiguration(actions: [deleteAction])
         config.performsFirstActionWithFullSwipe = true
         return config
+    
     }
 
     // Отмечаем/снимаем задачу как выполненную
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
             
-        let task = viewModel.tasks[indexPath.row]
+//        let task = viewModel.tasks[indexPath.row]
+//
+//            let addVC = AddTaskViewController()
+//            addVC.isEditingTask = true          // включаем режим редактирования
+//            addVC.existingTask = task           // передаем задачу
+//            addVC.showCompletedSwitch = true    // показываем switch
+//            addVC.showShareButton = true        // показываем share
+//
+//            // Делаем делегатом self, чтобы при добавлении/изменении обновлять таблицу
+//            addVC.delegate = self
+//
+//            if let sheet = addVC.sheetPresentationController {
+//                sheet.detents = [.large()]
+//                sheet.prefersGrabberVisible = true
+//            }
+//
+//            present(addVC, animated: true)
+        
+        // Выбираем задачу в зависимости от поиска
+            let task = isSearching ? filteredTasks[indexPath.row] : viewModel.tasks[indexPath.row]
             
             let addVC = AddTaskViewController()
-            addVC.isEditingTask = true          // включаем режим редактирования
-            addVC.existingTask = task           // передаем задачу
-            addVC.showCompletedSwitch = true    // показываем switch
-            addVC.showShareButton = true        // показываем share
-            
-            // Делаем делегатом self, чтобы при добавлении/изменении обновлять таблицу
+            addVC.isEditingTask = true
+            addVC.existingTask = task
+            addVC.showCompletedSwitch = true
+            addVC.showShareButton = true
             addVC.delegate = self
 
             if let sheet = addVC.sheetPresentationController {
@@ -482,34 +511,40 @@ extension TasksViewController: AddTaskViewControllerDelegate {
 
     func didAddTask(_ task: TaskEntity) {
         if let index = viewModel.tasks.firstIndex(of: task) {
-                    // Если задача уже есть → редактируем
-                    viewModel.tasks[index] = task
-                    tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-                } else {
-                    // Добавление новой
-                    viewModel.tasks.insert(task, at: 0)
-                    tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
-                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-                }
-                updateTasksCount()
+            // Если задача уже есть → редактируем
+            viewModel.tasks[index] = task
+            tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        } else {
+            // Добавление новой
+            viewModel.tasks.insert(task, at: 0)
+            tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+        }
+        updateTasksCount()
         
-//        if let index = viewModel.tasks.firstIndex(of: task) {
-//                // Редактируем существующую задачу
-//                viewModel.tasks[index] = task
-//                tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-//            } else {
-//                // Добавление новой задачи сверху
-//                viewModel.tasks.insert(task, at: 0)
-//                UIView.performWithoutAnimation {
-//                    tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .none)
-//                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
-//                }
-//            }
-//            updateTasksCount()
-//
+        //        // Обновляем или вставляем задачу в основной массив
+        //            if let mainIndex = viewModel.tasks.firstIndex(where: { $0.id == task.id }) {
+        //                viewModel.tasks[mainIndex] = task
+        //            } else {
+        //                viewModel.tasks.insert(task, at: 0)
+        //            }
+        //
+        //            // Если поиск активен — обновляем filteredTasks
+        //            if isSearching {
+        //                if let filteredIndex = filteredTasks.firstIndex(where: { $0.id == task.id }) {
+        //                    filteredTasks[filteredIndex] = task
+        //                } else if !viewModel.tasks.isEmpty {
+        //                    // Новая задача, подходящая под фильтр, вставляем сверху
+        //                    filteredTasks.insert(task, at: 0)
+        //                }
+        //            }
+        //
+        //            tableView.reloadData() // безопасно перезагрузить всю таблицу
+        //            updateTasksCount()
+        //            CoreDataManager.shared.saveContext()
+        //    }
+        
     }
-    
-    
     
 }
 

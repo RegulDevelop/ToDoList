@@ -110,7 +110,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     private let cancelButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("Отмена", for: .normal)
-        btn.titleLabel?.font = .boldSystemFont(ofSize: 20)
+        btn.titleLabel?.font = .boldSystemFont(ofSize: 22)
         btn.backgroundColor = .systemYellow
         btn.tintColor = .white
         btn.layer.cornerRadius = 20
@@ -154,58 +154,187 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     }
 
     private func setupViews() {
-        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+//        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+//        
+//        // Добавляем subviews
+//        [titleTextField, descriptionTextView, completedLabel, completedSwitch, saveButton, cancelButton, titleLabel, descriptionLabel, descriptionPlaceholder, shareButton].forEach {
+//            $0.translatesAutoresizingMaskIntoConstraints = false
+//            view.addSubview($0)
+//        }
+//
+//        NSLayoutConstraint.activate([
+//            
+//            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
+//            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+//            
+//            titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+//            titleTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+//            titleTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+//            titleTextField.heightAnchor.constraint(equalToConstant: 44),
+//            
+//            descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 30),
+//            descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+//
+//            descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 10),
+//            descriptionTextView.leadingAnchor.constraint(equalTo: titleTextField.leadingAnchor),
+//            descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
+//            descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
+//            
+//            shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 20),
+//            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+//            
+//            descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
+//            descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
+//
+//            completedLabel.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 75),
+//            completedLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+//
+//            completedSwitch.centerYAnchor.constraint(equalTo: completedLabel.centerYAnchor),
+//            completedSwitch.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+//
+//            cancelButton.topAnchor.constraint(equalTo: completedLabel.bottomAnchor, constant: 50),
+//            cancelButton.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor),
+//            cancelButton.heightAnchor.constraint(equalToConstant: 50),
+//            cancelButton.widthAnchor.constraint(equalToConstant: 150),
+//            
+//            saveButton.topAnchor.constraint(equalTo: completedLabel.bottomAnchor, constant: 50),
+//            saveButton.trailingAnchor.constraint(equalTo: descriptionTextView.trailingAnchor),
+//            saveButton.heightAnchor.constraint(equalToConstant: 50),
+//            saveButton.widthAnchor.constraint(equalToConstant: 150),
+//            
+//        ])
+//
+//        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+//        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
         
-        // Добавляем subviews
-        [titleTextField, descriptionTextView, completedLabel, completedSwitch, saveButton, cancelButton, titleLabel, descriptionLabel, descriptionPlaceholder, shareButton].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
+        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+            saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+            shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
 
-        NSLayoutConstraint.activate([
-            
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
-            
-            titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
-            titleTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            titleTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            titleTextField.heightAnchor.constraint(equalToConstant: 44),
-            
-            descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 30),
-            descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            [titleLabel, titleTextField, descriptionLabel, descriptionTextView, descriptionPlaceholder, completedLabel, completedSwitch, shareButton, cancelButton, saveButton].forEach {
+                $0.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview($0)
+            }
 
-            descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 10),
-            descriptionTextView.leadingAnchor.constraint(equalTo: titleTextField.leadingAnchor),
-            descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
-            descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
-            
-            shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 20),
-            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
-            
-            descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
-            descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
+            // MARK: - Верхние поля
+            NSLayoutConstraint.activate([
+                titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
+                titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
 
-            completedLabel.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 75),
-            completedLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+                titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+                titleTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+                titleTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+                titleTextField.heightAnchor.constraint(equalToConstant: 44),
 
-            completedSwitch.centerYAnchor.constraint(equalTo: completedLabel.centerYAnchor),
-            completedSwitch.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+                descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 30),
+                descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
 
-            cancelButton.topAnchor.constraint(equalTo: completedLabel.bottomAnchor, constant: 50),
-            cancelButton.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor),
-            cancelButton.heightAnchor.constraint(equalToConstant: 50),
-            cancelButton.widthAnchor.constraint(equalToConstant: 150),
-            
-            saveButton.topAnchor.constraint(equalTo: completedLabel.bottomAnchor, constant: 50),
-            saveButton.trailingAnchor.constraint(equalTo: descriptionTextView.trailingAnchor),
-            saveButton.heightAnchor.constraint(equalToConstant: 50),
-            saveButton.widthAnchor.constraint(equalToConstant: 150),
-            
-        ])
+                descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 10),
+                descriptionTextView.leadingAnchor.constraint(equalTo: titleTextField.leadingAnchor),
+                descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
+                descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
 
-        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+                descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
+                descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
+            ])
+
+            // MARK: - Стек для switch + share + кнопки
+//        // 1️⃣ Горизонтальный стек только для switch
+//        let switchStack = UIStackView(arrangedSubviews: [])
+//        switchStack.axis = .horizontal
+//        switchStack.spacing = 10
+//        switchStack.alignment = .center
+//        switchStack.translatesAutoresizingMaskIntoConstraints = false
+//        view.addSubview(switchStack)
+//
+//        if showCompletedSwitch {
+//            switchStack.addArrangedSubview(completedLabel)
+//            switchStack.addArrangedSubview(completedSwitch)
+//        }
+//
+//        switchStack.isHidden = !showCompletedSwitch
+//
+//        // 2️⃣ Горизонтальный стек для кнопок
+//        let buttonsStack = UIStackView(arrangedSubviews: [cancelButton, saveButton])
+//        buttonsStack.axis = .horizontal
+//        buttonsStack.spacing = 30
+//        buttonsStack.distribution = .fillEqually
+//        buttonsStack.translatesAutoresizingMaskIntoConstraints = false
+//        view.addSubview(buttonsStack)
+//
+//        [saveButton, cancelButton].forEach { btn in
+//            btn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+//            btn.widthAnchor.constraint(equalToConstant: 150).isActive = true
+//        }
+//
+//        // 3️⃣ Добавляем все элементы в отдельный actionStack вертикально
+//        let actionStack = UIStackView(arrangedSubviews: [])
+//        actionStack.axis = .vertical
+//        actionStack.spacing = 40
+//        actionStack.translatesAutoresizingMaskIntoConstraints = false
+//        view.addSubview(actionStack)
+//
+//        // 4️⃣ Настраиваем constraints
+//        NSLayoutConstraint.activate([
+//            // shareButton отдельно, прямо под descriptionTextView
+//            shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 10),
+//            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+//            shareButton.heightAnchor.constraint(equalToConstant: 50),
+//            
+//            switchStack.topAnchor.constraint(equalTo: shareButton.topAnchor, constant: 70),
+//            switchStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+//            switchStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+//            
+//            buttonsStack.topAnchor.constraint(equalTo: switchStack.bottomAnchor, constant: 40),
+//            buttonsStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+//            buttonsStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+//        ])
+        
+        // Share button всегда под TV
+            NSLayoutConstraint.activate([
+                shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 5),
+                shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
+                shareButton.heightAnchor.constraint(equalToConstant: 50)
+            ])
+
+            // Switch stack
+            let switchStack = UIStackView(arrangedSubviews: [])
+            switchStack.axis = .horizontal
+            switchStack.spacing = 10
+            switchStack.alignment = .center
+            switchStack.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(switchStack)
+            if showCompletedSwitch {
+                switchStack.addArrangedSubview(completedLabel)
+                switchStack.addArrangedSubview(completedSwitch)
+            }
+            switchStack.isHidden = !showCompletedSwitch
+
+            // Buttons stack
+            let buttonsStack = UIStackView(arrangedSubviews: [cancelButton, saveButton])
+            buttonsStack.axis = .horizontal
+            buttonsStack.spacing = 40
+            buttonsStack.distribution = .fillEqually
+            buttonsStack.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(buttonsStack)
+            [saveButton, cancelButton].forEach {
+                $0.heightAnchor.constraint(equalToConstant: 50).isActive = true
+                $0.widthAnchor.constraint(equalToConstant: 150).isActive = true
+            }
+
+            // ✅ Разные отступы для добавления и редактирования
+            let switchTopOffset: CGFloat = isEditingTask ? 30 : 20
+            let buttonsTopOffset: CGFloat = isEditingTask ? 50 : 20
+
+            NSLayoutConstraint.activate([
+                switchStack.topAnchor.constraint(equalTo: shareButton.bottomAnchor, constant: switchTopOffset),
+                switchStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+                switchStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+
+                buttonsStack.topAnchor.constraint(equalTo: switchStack.bottomAnchor, constant: buttonsTopOffset),
+                buttonsStack.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            ])
+        
     }
     
     @objc private func shareTapped() {
@@ -232,31 +361,88 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     }
 
     @objc private func saveTapped() {
+//        guard let title = titleTextField.text, !title.isEmpty else { return }
+//        let description = descriptionTextView.text ?? ""
+//        let isCompleted = completedSwitch.isOn
+////        delegate?.didAddTask(title: title, description: description, isCompleted: isCompleted)
+////        dismiss(animated: true)
+//        
+//        if isEditingTask, let task = existingTask {
+//                // Редактируем существующую задачу
+//                task.title = title
+//                task.taskDescription = description
+//                task.isCompleted = isCompleted
+//                CoreDataManager.shared.saveContext()
+//                delegate?.didAddTask(task)
+//            } else {
+//                // Создаем новую задачу
+//                let newTask = TaskEntity(context: CoreDataManager.shared.context)
+//                newTask.title = title
+//                newTask.taskDescription = description
+//                newTask.isCompleted = isCompleted
+//                newTask.order = Int64(CoreDataManager.shared.fetchTasks().count)
+//                CoreDataManager.shared.saveContext()
+//                delegate?.didAddTask(newTask)
+//            }
+//            
+//            dismiss(animated: true)
+        
+//        guard let title = titleTextField.text, !title.isEmpty else { return }
+//           let description = descriptionTextView.text ?? ""
+//           let isCompleted = completedSwitch.isOn
+//
+//           if isEditingTask, let task = existingTask {
+//               // Редактируем существующую задачу
+//               task.title = title
+//               task.taskDescription = description
+//               task.isCompleted = isCompleted
+//               CoreDataManager.shared.saveContext()
+//               delegate?.didAddTask(task)
+//           } else {
+//               // Создаем новую задачу
+//               let newTask = TaskEntity(context: CoreDataManager.shared.context)
+//               newTask.title = title
+//               newTask.taskDescription = description
+//               newTask.isCompleted = isCompleted
+//               newTask.order = Int64(CoreDataManager.shared.fetchTasks().count)
+//               newTask.createdAt = Date()  // <-- Добавляем дату создания
+//               CoreDataManager.shared.saveContext()
+//               delegate?.didAddTask(newTask)
+//           }
+//
+//           dismiss(animated: true)
+        
         guard let title = titleTextField.text, !title.isEmpty else { return }
         let description = descriptionTextView.text ?? ""
         let isCompleted = completedSwitch.isOn
-//        delegate?.didAddTask(title: title, description: description, isCompleted: isCompleted)
-//        dismiss(animated: true)
-        
+
         if isEditingTask, let task = existingTask {
-                // Редактируем существующую задачу
-                task.title = title
-                task.taskDescription = description
-                task.isCompleted = isCompleted
-                CoreDataManager.shared.saveContext()
-                delegate?.didAddTask(task)
-            } else {
-                // Создаем новую задачу
-                let newTask = TaskEntity(context: CoreDataManager.shared.context)
-                newTask.title = title
-                newTask.taskDescription = description
-                newTask.isCompleted = isCompleted
-                newTask.order = Int64(CoreDataManager.shared.fetchTasks().count)
-                CoreDataManager.shared.saveContext()
-                delegate?.didAddTask(newTask)
+            // Редактируем существующую задачу
+            task.title = title
+            task.taskDescription = description
+            task.isCompleted = isCompleted
+            CoreDataManager.shared.saveContext()
+            delegate?.didAddTask(task)
+        } else {
+            // Создаём новую задачу сверху
+            let newTask = TaskEntity(context: CoreDataManager.shared.context)
+            newTask.title = title
+            newTask.taskDescription = description
+            newTask.isCompleted = isCompleted
+            newTask.createdAt = Date()
+            newTask.order = 0  // <-- новая задача в начале
+
+            // Смещаем все существующие задачи вниз
+            let tasks = CoreDataManager.shared.fetchTasks()
+            for task in tasks {
+                task.order += 1
             }
-            
-            dismiss(animated: true)
+
+            CoreDataManager.shared.saveContext()
+            delegate?.didAddTask(newTask)
+        }
+
+        dismiss(animated: true)
     }
     
     @objc private func cancelTapped() {
