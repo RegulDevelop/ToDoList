@@ -42,11 +42,12 @@ final class CoreDataManager {
         }
     }
     
-    func saveTask(title: String, description: String, isCompleted: Bool) -> TaskEntity {
+    func saveTask(title: String, description: String, isCompleted: Bool, isImportant: Bool) -> TaskEntity {
         let task = TaskEntity(context: context)
         task.title = title
         task.taskDescription = description
         task.isCompleted = isCompleted
+        task.isImportant = isImportant
         task.createdAt = Date()
         saveContext()
         return task

@@ -53,6 +53,29 @@ class TaskTableViewCell: UITableViewCell {
         return label
     }()
     
+    private let importantImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "flag.fill")
+        imageView.tintColor = .systemYellow
+        imageView.isHidden = true
+        return imageView
+    }()
+    
+    private let remindIcon: UIImageView = {
+        let iv = UIImageView(image: UIImage(systemName: "alarm.fill"))
+        iv.tintColor = .systemYellow
+        iv.isHidden = true
+        return iv
+    }()
+
+    private let remindLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .systemYellow
+        label.isHidden = true
+        return label
+    }()
+    
     // MARK: - Инициализация
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -62,6 +85,7 @@ class TaskTableViewCell: UITableViewCell {
         containerView.addSubview(descriptionLabel)
         containerView.addSubview(dateLabel)
         containerView.addSubview(checkmarkImageView)
+        containerView.addSubview(importantImageView)
         
         setupConstraints()
     }
@@ -76,6 +100,7 @@ class TaskTableViewCell: UITableViewCell {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
+        importantImageView.translatesAutoresizingMaskIntoConstraints = false
         
         titleWithCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: checkmarkImageView.trailingAnchor, constant: 10)
         titleWithoutCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10)
@@ -102,7 +127,12 @@ class TaskTableViewCell: UITableViewCell {
             dateLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 5),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             dateLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
+            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+            
+            importantImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            importantImageView.bottomAnchor.constraint(equalTo: dateLabel.bottomAnchor),
+            importantImageView.widthAnchor.constraint(equalToConstant: 16),
+            importantImageView.heightAnchor.constraint(equalToConstant: 16)
         ])
     }
     
@@ -147,6 +177,15 @@ class TaskTableViewCell: UITableViewCell {
             dateLabel.text = ""
         }
         
+        // Важное
+        if task.isImportant {
+            titleLabel.textColor = .systemYellow
+            importantImageView.isHidden = false
+        } else {
+            titleLabel.textColor = task.isCompleted ? .systemGray : .white
+            importantImageView.isHidden = true
+        }
+        
         // Галочка и constraints
         if task.isCompleted {
             checkmarkImageView.isHidden = false
@@ -164,7 +203,14 @@ class TaskTableViewCell: UITableViewCell {
         let titleText = task.title ?? ""
         let descText = task.taskDescription ?? ""
         
-        let textColor: UIColor = task.isCompleted ? .systemGray : .white
+        let textColor: UIColor
+
+        if task.isImportant {
+            textColor = .systemYellow
+        } else {
+            textColor = task.isCompleted ? .systemGray : .white
+        }
+        
         let strikethrough: NSUnderlineStyle = task.isCompleted ? .single : []
         
         let titleAttr = NSMutableAttributedString(

@@ -35,7 +35,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         let tl = UILabel()
         tl.text = "Задача:"
         tl.textColor = .systemYellow
-        tl.font = .systemFont(ofSize: 22, weight: .bold)
+        tl.font = .systemFont(ofSize: 18, weight: .bold)
         return tl
     }()
 
@@ -55,7 +55,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         let dl = UILabel()
         dl.text = "Описание:"
         dl.textColor = .systemYellow
-        dl.font = .systemFont(ofSize: 22, weight: .bold)
+        dl.font = .systemFont(ofSize: 18, weight: .bold)
         return dl
     }()
 
@@ -78,6 +78,36 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         label.font = .systemFont(ofSize: 18)
         return label
     }()
+    
+    private let remindLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Напоминание:"
+        label.textColor = .systemYellow
+        label.font = .systemFont(ofSize: 18, weight: .bold)
+        return label
+    }()
+    
+    private let remindTextField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "Время напоминания"
+        tf.layer.cornerRadius = 20
+        tf.borderStyle = .roundedRect
+        tf.layer.masksToBounds = true
+        tf.layer.borderWidth = 1
+        tf.layer.borderColor = UIColor.systemGray4.cgColor
+        tf.setLeftPaddingPoints(10)
+        return tf
+    }()
+    
+    private let remindDatePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .dateAndTime
+        picker.preferredDatePickerStyle = .wheels
+        picker.locale = Locale.current
+        picker.minimumDate = Date() // нельзя выбрать прошедшую дату
+        picker.tintColor = .systemYellow
+        return picker
+    }()
 
     private let completedSwitch: UISwitch = {
         let sw = UISwitch()
@@ -88,9 +118,24 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
 
     private let completedLabel: UILabel = {
         let label = UILabel()
-        label.text = "Выполнено:"
+        label.text = "Отметить как выполнено:"
         label.textColor = .systemYellow
-        label.font = .systemFont(ofSize: 22, weight: .bold)
+        label.font = .systemFont(ofSize: 18, weight: .bold)
+        return label
+    }()
+    
+    private let importantSwitch: UISwitch = {
+        let sw = UISwitch()
+        sw.isOn = false
+        sw.onTintColor = .systemYellow
+        return sw
+    }()
+    
+    private let importantLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Отметить как важное:"
+        label.textColor = .systemYellow
+        label.font = .systemFont(ofSize: 18, weight: .bold)
         return label
     }()
 
@@ -119,6 +164,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         view.backgroundColor = .systemBackground
         descriptionTextView.delegate = self
         setupViews()
+        setupRemindPicker()
         
         // Заполняем поля, если редактируем
         if let task = existingTask {
@@ -126,6 +172,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             descriptionTextView.text = task.taskDescription
             descriptionPlaceholder.isHidden = !descriptionTextView.text.isEmpty
             completedSwitch.isOn = task.isCompleted
+            importantSwitch.isOn = task.isImportant
         }
         
         if isEditingTask {
@@ -156,7 +203,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
 
-        [titleLabel, titleTextField, descriptionLabel, descriptionTextView, descriptionPlaceholder, completedLabel, completedSwitch, shareButton, cancelButton, saveButton].forEach {
+        [titleLabel, titleTextField, descriptionLabel, descriptionTextView, descriptionPlaceholder, completedLabel, completedSwitch, shareButton, cancelButton, saveButton, remindLabel, remindTextField].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -165,29 +212,34 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            
+            shareButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 15),
+            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+            shareButton.heightAnchor.constraint(equalToConstant: 50),
 
-            titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+            titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             titleTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             titleTextField.heightAnchor.constraint(equalToConstant: 44),
 
-            descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 30),
+            descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 20),
             descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
 
-            descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 10),
+            descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 8),
             descriptionTextView.leadingAnchor.constraint(equalTo: titleTextField.leadingAnchor),
             descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
             descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
 
             descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
             descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
-        ])
-        
-        // Share button всегда под TV
-        NSLayoutConstraint.activate([
-            shareButton.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 5),
-            shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -40),
-            shareButton.heightAnchor.constraint(equalToConstant: 50)
+            
+            remindLabel.topAnchor.constraint(equalTo: descriptionTextView.bottomAnchor, constant: 20),
+            remindLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            
+            remindTextField.topAnchor.constraint(equalTo: remindLabel.bottomAnchor, constant: 8),
+            remindTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            remindTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            remindTextField.heightAnchor.constraint(equalToConstant: 44),
         ])
 
         // Switch stack
@@ -201,7 +253,17 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             switchStack.addArrangedSubview(completedLabel)
             switchStack.addArrangedSubview(completedSwitch)
         }
+        
         switchStack.isHidden = !showCompletedSwitch
+        
+        let switchImportantStack = UIStackView(arrangedSubviews: [])
+        switchImportantStack.axis = .horizontal
+        switchImportantStack.spacing = 10
+        switchImportantStack.alignment = .center
+        switchImportantStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(switchImportantStack)
+        switchImportantStack.addArrangedSubview(importantLabel)
+        switchImportantStack.addArrangedSubview(importantSwitch)
 
         // Buttons stack
         let buttonsStack = UIStackView(arrangedSubviews: [cancelButton, saveButton])
@@ -216,18 +278,44 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         }
 
         // ✅ Разные отступы для добавления и редактирования
-        let switchTopOffset: CGFloat = isEditingTask ? 30 : 20
-        let buttonsTopOffset: CGFloat = isEditingTask ? 50 : 20
+        let switchTopOffset: CGFloat = isEditingTask ? 20 : 20
+        let switchImportantTopOffset: CGFloat = isEditingTask ? 50 : 5
+        let buttonsTopOffset: CGFloat = isEditingTask ? 40 : 40
 
         NSLayoutConstraint.activate([
-            switchStack.topAnchor.constraint(equalTo: shareButton.bottomAnchor, constant: switchTopOffset),
+            switchStack.topAnchor.constraint(equalTo: remindTextField.bottomAnchor, constant: switchTopOffset),
             switchStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
             switchStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+            
+            switchImportantStack.topAnchor.constraint(equalTo: switchStack.topAnchor, constant: switchImportantTopOffset),
+            switchImportantStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            switchImportantStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
 
-            buttonsStack.topAnchor.constraint(equalTo: switchStack.bottomAnchor, constant: buttonsTopOffset),
+            buttonsStack.topAnchor.constraint(equalTo: switchImportantStack.bottomAnchor, constant: buttonsTopOffset),
             buttonsStack.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
         
+    }
+    
+    // Напоминание
+    private func setupRemindPicker() {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        
+        let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(donePickingDate))
+        toolbar.setItems([doneButton], animated: true)
+        
+        remindTextField.inputAccessoryView = toolbar
+        remindTextField.inputView = remindDatePicker
+    }
+
+    @objc private func donePickingDate() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        
+        remindTextField.text = dateFormatter.string(from: remindDatePicker.date)
+        remindTextField.resignFirstResponder()
     }
     
     @objc private func shareTapped() {
@@ -258,12 +346,14 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         guard let title = titleTextField.text, !title.isEmpty else { return }
         let description = descriptionTextView.text ?? ""
         let isCompleted = completedSwitch.isOn
+        let isImportant = importantSwitch.isOn
 
         if isEditingTask, let task = existingTask {
             // Редактируем существующую задачу
             task.title = title
             task.taskDescription = description
             task.isCompleted = isCompleted
+            task.isImportant = isImportant
             CoreDataManager.shared.saveContext()
             delegate?.didAddTask(task)
         } else {
@@ -272,7 +362,9 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             newTask.title = title
             newTask.taskDescription = description
             newTask.isCompleted = isCompleted
+            newTask.isImportant = isImportant
             newTask.createdAt = Date()
+            newTask.remindAt = remindDatePicker.date
             newTask.order = 0  // <-- новая задача в начале
 
             // Смещаем все существующие задачи вниз

@@ -53,10 +53,10 @@ class TasksViewModel {
     }
 
     // MARK: - Добавление новой задачи
-    func addTask(title: String, userId: Int, description: String, isCompleted: Bool) {
+    func addTask(title: String, userId: Int, description: String, isCompleted: Bool, isImportant: Bool) {
         
         // Сохраняем задачу в CoreData и получаем объект
-        let task = storage.saveTask(title: title, description: description, isCompleted: isCompleted)
+        let task = storage.saveTask(title: title, description: description, isCompleted: isCompleted, isImportant: isImportant)
 
         // Загружаем все задачи с сортировкой по createdAt descending
         tasks = storage.fetchTasks()
