@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import UserNotifications
 
 final class CoreDataManager {
 
@@ -104,4 +105,73 @@ final class CoreDataManager {
         saveContext()
     }
     
+//    // Планирование уведомления
+//    func scheduleNotification(for task: TaskEntity) {
+//        guard let remindDate = task.remindAt, !task.isCompleted else { return }
+//
+//        let soundName = UNNotificationSoundName("mixkit-flute-mobile-phone-notification-alert-2316.caf")
+//        let content = UNMutableNotificationContent()
+//        content.title = task.title ?? "Напоминание"
+//        content.body = task.taskDescription ?? ""
+//        content.sound = UNNotificationSound(named: soundName)
+//
+//        let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: remindDate)
+//        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+//
+//        let request = UNNotificationRequest(identifier: task.notificationId,
+//                                            content: content,
+//                                            trigger: trigger)
+//
+//        UNUserNotificationCenter.current().add(request) { error in
+//            if let error = error {
+//                print("Ошибка при добавлении уведомления: \(error)")
+//            } else {
+//                print("Уведомление запланировано на \(remindDate)")
+//            }
+//        }
+//    }
+    
+    func scheduleNotification(for task: TaskEntity) {
+            // Проверяем дату напоминания и статус задачи
+            guard let remindDate = task.remindAt, !task.isCompleted else { return }
+
+            // Устанавливаем контент уведомления
+            let content = UNMutableNotificationContent()
+            content.title = task.title ?? "Напоминание"
+            content.body = task.taskDescription ?? ""
+            
+            // Используем пользовательский звук
+            // Имя файла должно быть точным и включать расширение
+            let soundFileName = "mixkit-flute-mobile-phone-notification-alert-2316.caf"
+            if let _ = Bundle.main.url(forResource: soundFileName, withExtension: nil) {
+                content.sound = UNNotificationSound(named: UNNotificationSoundName(soundFileName))
+            } else {
+                print("⚠️ Файл звука не найден в бандле, используется стандартный звук")
+                content.sound = .default
+            }
+
+            // Настройка триггера
+            let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: remindDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+
+            // Запрос на уведомление
+            let request = UNNotificationRequest(identifier: task.notificationId,
+                                                content: content,
+                                                trigger: trigger)
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Ошибка при добавлении уведомления: \(error)")
+                } else {
+                    print("✅ Уведомление запланировано на \(remindDate)")
+                }
+            }
+        }
+
+    // Удаление уведомления
+    func removeNotification(for task: TaskEntity) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [task.notificationId])
+    }
+    
 }
+

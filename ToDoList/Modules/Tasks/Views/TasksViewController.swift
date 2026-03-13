@@ -9,6 +9,7 @@ import UIKit
 import LocalAuthentication
 import Speech
 import AVFoundation
+import UserNotifications
 
 class TasksViewController: UIViewController,
                            UITableViewDataSource,
@@ -149,6 +150,16 @@ class TasksViewController: UIViewController,
             authOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            DispatchQueue.main.async {
+                if granted {
+                    print("Разрешение на уведомления получено")
+                } else {
+                    print("Уведомления запрещены")
+                }
+            }
+        }
+        
         // Загрузка сохраненной сортировки
         if let savedSort = UserDefaults.standard.string(forKey: "tasksSort"),
            let sort = SortType(rawValue: savedSort) {
@@ -198,12 +209,37 @@ class TasksViewController: UIViewController,
         }
     }
     
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
         
         filterTasks()
     }
+    
+//    // Функция для планирования уведомления
+//    func scheduleNotification(for task: TaskEntity) {
+//        guard let remindDate = task.remindAt else { return }
+//
+//            let content = UNMutableNotificationContent()
+//            content.title = task.title ?? "Напоминание"
+//            content.body = task.taskDescription ?? ""
+//            content.sound = UNNotificationSound.default
+//
+//            let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: remindDate)
+//            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+//
+//            let identifier = String(task.id) // task.id — Int64
+//            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+//
+//            UNUserNotificationCenter.current().add(request) { error in
+//                if let error = error {
+//                    print("Ошибка при добавлении уведомления: \(error)")
+//                } else {
+//                    print("Уведомление запланировано на \(remindDate)")
+//                }
+//            }
+//    }
     
     // MARK: - Настройки поиска
     // Когда меняется текст в поиске
@@ -805,32 +841,67 @@ class TasksViewController: UIViewController,
     // Свайп влево → удаление задачи
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
+//        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+//            
+//            guard let self = self else { return }
+//            
+//            // Берём задачу из отображаемого массива
+//            let task = self.filteredTasks[indexPath.row]
+//            
+//            if let taskId = task.id?.uuidString {
+//                    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [taskId])
+//            }
+//            
+//            // Находим её в основном массиве
+//            if let index = self.viewModel.tasks.firstIndex(of: task) {
+//                self.viewModel.deleteTask(at: index)
+//            }
+//            
+//            // Пересчитываем отображаемые задачи
+//            self.filterTasks()
+//            self.updateTasksCount()
+//            
+//            completionHandler(true)
+//        }
+//        
+//        deleteAction.backgroundColor = UIColor.systemRed
+//        deleteAction.image = UIImage(systemName: "trash.fill")
+//        
+//        let config = UISwipeActionsConfiguration(actions: [deleteAction])
+//        config.performsFirstActionWithFullSwipe = true
+//        
+//        return config
+        
         let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-            
-            guard let self = self else { return }
-            
-            // Берём задачу из отображаемого массива
-            let task = self.filteredTasks[indexPath.row]
-            
-            // Находим её в основном массиве
-            if let index = self.viewModel.tasks.firstIndex(of: task) {
-                self.viewModel.deleteTask(at: index)
-            }
-            
-            // Пересчитываем отображаемые задачи
-            self.filterTasks()
-            self.updateTasksCount()
-            
-            completionHandler(true)
-        }
-        
-        deleteAction.backgroundColor = .systemRed
-        deleteAction.image = UIImage(systemName: "trash.fill")
-        
-        let config = UISwipeActionsConfiguration(actions: [deleteAction])
-        config.performsFirstActionWithFullSwipe = true
-        
-        return config
+               
+               guard let self = self else { return }
+               
+               // Берём задачу из отображаемого массива
+               let task = self.filteredTasks[indexPath.row]
+               
+               // Преобразуем Int64 в String для идентификатора уведомления
+               let taskId = String(task.id)
+               UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [taskId])
+               
+               // Находим её в основном массиве и удаляем
+               if let index = self.viewModel.tasks.firstIndex(of: task) {
+                   self.viewModel.deleteTask(at: index)
+               }
+               
+               // Обновляем отображаемые задачи
+               self.filterTasks()
+               self.updateTasksCount()
+               
+               completionHandler(true)
+           }
+           
+           deleteAction.backgroundColor = UIColor.systemRed
+           deleteAction.image = UIImage(systemName: "trash.fill")
+           
+           let config = UISwipeActionsConfiguration(actions: [deleteAction])
+           config.performsFirstActionWithFullSwipe = true
+           
+           return config
         
     }
     
@@ -1014,6 +1085,11 @@ extension TasksViewController: AddTaskViewControllerDelegate {
         
         updateTasksCount()
         filterTasks()
+        
+//        // Планируем уведомление, если есть remindAt
+//        if task.remindAt != nil {
+//            scheduleNotification(for: task)
+//        }
         
         // Прокрутка наверх
         if !filteredTasks.isEmpty {

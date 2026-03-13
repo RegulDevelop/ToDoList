@@ -67,10 +67,10 @@ class TaskTableViewCell: UITableViewCell {
         iv.isHidden = true
         return iv
     }()
-
+    
     private let remindLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14)
+        label.font = .systemFont(ofSize: 12)
         label.textColor = .systemYellow
         label.isHidden = true
         return label
@@ -86,6 +86,8 @@ class TaskTableViewCell: UITableViewCell {
         containerView.addSubview(dateLabel)
         containerView.addSubview(checkmarkImageView)
         containerView.addSubview(importantImageView)
+        containerView.addSubview(remindIcon)
+        containerView.addSubview(remindLabel)
         
         setupConstraints()
     }
@@ -101,6 +103,8 @@ class TaskTableViewCell: UITableViewCell {
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         importantImageView.translatesAutoresizingMaskIntoConstraints = false
+        remindIcon.translatesAutoresizingMaskIntoConstraints = false
+        remindLabel.translatesAutoresizingMaskIntoConstraints = false
         
         titleWithCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: checkmarkImageView.trailingAnchor, constant: 10)
         titleWithoutCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10)
@@ -127,12 +131,22 @@ class TaskTableViewCell: UITableViewCell {
             dateLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 5),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             dateLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+//            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
             
             importantImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             importantImageView.bottomAnchor.constraint(equalTo: dateLabel.bottomAnchor),
             importantImageView.widthAnchor.constraint(equalToConstant: 16),
-            importantImageView.heightAnchor.constraint(equalToConstant: 16)
+            importantImageView.heightAnchor.constraint(equalToConstant: 16),
+            
+            remindIcon.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
+            remindIcon.centerYAnchor.constraint(equalTo: remindLabel.centerYAnchor),
+            remindIcon.widthAnchor.constraint(equalToConstant: 16),
+            remindIcon.heightAnchor.constraint(equalToConstant: 16),
+            
+            remindLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 5),
+            remindLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            remindLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
+            remindLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
         ])
     }
     
@@ -199,39 +213,55 @@ class TaskTableViewCell: UITableViewCell {
             containerView.alpha = 1.0
         }
         
-        // Настройка текста и атрибутов
-        let titleText = task.title ?? ""
-        let descText = task.taskDescription ?? ""
-        
-        let textColor: UIColor
-
-        if task.isImportant {
-            textColor = .systemYellow
+        // Настройка напоминания
+        if let remindAt = task.remindAt {
+            remindIcon.isHidden = false
+            remindLabel.isHidden = false
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ru_RU")
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            remindLabel.text = "Напоминание: \(formatter.string(from: remindAt))"
         } else {
-            textColor = task.isCompleted ? .systemGray : .white
+            remindIcon.isHidden = true
+            remindLabel.isHidden = true
+        }
+            
+            // Настройка текста и атрибутов
+            let titleText = task.title ?? ""
+            let descText = task.taskDescription ?? ""
+            
+            let textColor: UIColor
+            
+            if task.isImportant {
+                textColor = .systemYellow
+            } else {
+                textColor = task.isCompleted ? .systemGray : .white
+            }
+            
+            let strikethrough: NSUnderlineStyle = task.isCompleted ? .single : []
+            
+            let titleAttr = NSMutableAttributedString(
+                string: titleText,
+                attributes: [
+                    .foregroundColor: textColor,
+                    .strikethroughStyle: strikethrough.rawValue
+                ]
+            )
+            
+            let descAttr = NSMutableAttributedString(
+                string: descText,
+                attributes: [
+                    .foregroundColor: textColor,
+                    .strikethroughStyle: strikethrough.rawValue
+                ]
+            )
+            
+            // Присваиваем лейблам
+            titleLabel.attributedText = titleAttr
+            descriptionLabel.attributedText = descAttr
         }
         
-        let strikethrough: NSUnderlineStyle = task.isCompleted ? .single : []
-        
-        let titleAttr = NSMutableAttributedString(
-            string: titleText,
-            attributes: [
-                .foregroundColor: textColor,
-                .strikethroughStyle: strikethrough.rawValue
-            ]
-        )
-        
-        let descAttr = NSMutableAttributedString(
-            string: descText,
-            attributes: [
-                .foregroundColor: textColor,
-                .strikethroughStyle: strikethrough.rawValue
-            ]
-        )
-        
-        // Присваиваем лейблам
-        titleLabel.attributedText = titleAttr
-        descriptionLabel.attributedText = descAttr
     }
     
-}
+
