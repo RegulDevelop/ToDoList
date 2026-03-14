@@ -24,6 +24,8 @@ class TasksViewController: UIViewController,
         case customOrder
     }
     
+    private var languageSelectionView: LanguageSelectionView!
+    
     private let tableView = UITableView()
     private let viewModel = TasksViewModel()
     private var currentSort: SortType = .dateDown
@@ -143,6 +145,8 @@ class TasksViewController: UIViewController,
         
         updateHeaderButtonUI()
         
+        applyLanguage()
+        
         view.addSubview(authOverlayView)
         authOverlayView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -217,6 +221,13 @@ class TasksViewController: UIViewController,
             }
         }
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyLanguage),
+            name: .languageChanged,
+            object: nil
+        )
+        
     }
     
     
@@ -237,6 +248,32 @@ class TasksViewController: UIViewController,
         }
     }
     
+    // Добавление языка
+    
+    @objc func applyLanguage() {
+        let langCode = HeaderButtonsManager.shared.selectedLanguage
+
+            switch langCode {
+            case "ru":
+                headerLabel.text = "Задачи"
+                searchBar.placeholder = "Поиск задач"
+            case "en":
+                headerLabel.text = "Tasks"
+                searchBar.placeholder = "Search tasks"
+            default:
+                break
+            }
+
+            updateTasksCount()
+            tableView.reloadData() // если текст в ячейках зависит от языка
+    }
+    
+//    private func applyLanguage() {
+//        headerLabel.text = LanguageManager.shared.localizedText(for: "tasksTitle")
+//        searchBar.placeholder = LanguageManager.shared.localizedText(for: "searchPlaceholder")
+//        updateTasksCount()
+//    }
+    
     // Меню выбора языка
     
     private func setupLanguageButtonMenu() {
@@ -245,28 +282,51 @@ class TasksViewController: UIViewController,
     }
     
     private func updateLanguageButtonMenu() {
-        let russian = UIAction(
-            title: "Русский",
-            state: HeaderButtonsManager.shared.selectedLanguage == "ru" ? .on : .off
-        ) { [weak self] _ in
-            HeaderButtonsManager.shared.setLanguage("ru")
-            self?.updateHeaderButtonUI()
-            // Здесь можно добавить обновление всех лейблов и UI
-            self?.tableView.reloadData()
-        }
+//        let langCode = HeaderButtonsManager.shared.selectedLanguage
+//
+//           // Создаём действия для меню
+//           let russian = UIAction(
+//               title: "Русский",
+//               state: langCode == "ru" ? .on : .off
+//           ) { [weak self] _ in
+//               HeaderButtonsManager.shared.selectedLanguage = "ru"
+//               self?.applyLanguage()
+//           }
+//
+//           let english = UIAction(
+//               title: "English",
+//               state: langCode == "en" ? .on : .off
+//           ) { [weak self] _ in
+//               HeaderButtonsManager.shared.selectedLanguage = "en"
+//               self?.applyLanguage()
+//           }
+//
+//           let menu = UIMenu(title: "Язык", children: [russian, english])
+//           headerLanguageButton.menu = menu
         
-        let english = UIAction(
-            title: "English",
-            state: HeaderButtonsManager.shared.selectedLanguage == "en" ? .on : .off
-        ) { [weak self] _ in
-            HeaderButtonsManager.shared.setLanguage("en")
-            self?.updateHeaderButtonUI()
-            // Обновляем все элементы интерфейса на английский
-            self?.tableView.reloadData()
-        }
-        
-        let menu = UIMenu(title: "Язык", children: [russian, english])
-        headerLanguageButton.menu = menu
+        let langCode = HeaderButtonsManager.shared.selectedLanguage
+
+           // Создаём действия для меню
+           let russian = UIAction(
+               title: "Русский",
+               state: langCode == "ru" ? .on : .off
+           ) { [weak self] _ in
+               HeaderButtonsManager.shared.selectedLanguage = "ru"
+               self?.applyLanguage()      // обновляем UI
+               self?.updateLanguageButtonMenu() // пересоздаём меню для галочек
+           }
+
+           let english = UIAction(
+               title: "English",
+               state: langCode == "en" ? .on : .off
+           ) { [weak self] _ in
+               HeaderButtonsManager.shared.selectedLanguage = "en"
+               self?.applyLanguage()
+               self?.updateLanguageButtonMenu()
+           }
+
+           let menu = UIMenu(title: "Язык", children: [russian, english])
+           headerLanguageButton.menu = menu
     }
     
     // MARK: - Настройки поиска
@@ -677,18 +737,18 @@ class TasksViewController: UIViewController,
     private func updateTasksCount() {
         let count: Int
         let text: String
-        
+
         if HeaderButtonsManager.shared.isDoneOnlyEnabled {
             count = viewModel.tasks.filter { $0.isCompleted }.count
-            text = "Завершено задач: \(count)"
+            text = "\(LanguageManager.shared.localizedText(for: "tasksCountDone")): \(count)"
         } else if HeaderButtonsManager.shared.isNotDoneOnlyEnabled {
             count = viewModel.tasks.filter { !$0.isCompleted }.count
-            text = "Не завершено задач: \(count)"
+            text = "\(LanguageManager.shared.localizedText(for: "tasksCountNotDone")): \(count)"
         } else {
             count = viewModel.tasks.count
-            text = "Всего задач: \(count)"
+            text = "\(LanguageManager.shared.localizedText(for: "tasksCountAll")): \(count)"
         }
-        
+
         tasksCountLabel.text = text
     }
     
@@ -1027,4 +1087,11 @@ extension TasksViewController: UNUserNotificationCenterDelegate {
 
 extension Notification.Name {
     static let taskUpdated = Notification.Name("taskUpdated")
+}
+
+// Язык
+extension TasksViewController: LanguageSelectionViewDelegate {
+    func didSelectLanguage(_ code: String) {
+        applyLanguage()
+    }
 }

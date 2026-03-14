@@ -7,6 +7,11 @@
 
 import UIKit
 
+// Уведомление о смене языка
+extension Notification.Name {
+    static let languageChanged = Notification.Name("languageChanged")
+}
+
 protocol HeaderButtonsManagerDelegate: AnyObject {
     func didUpdateButtonStates()
 }
@@ -14,11 +19,12 @@ protocol HeaderButtonsManagerDelegate: AnyObject {
 class HeaderButtonsManager {
     
     static let shared = HeaderButtonsManager()
-    
-    private init() {}
-    
-    private let doneOnlyKey = "doneOnlyFilter"
-    private let notDoneOnlyKey = "notDoneOnlyFilter"
+    private init() {
+        // Устанавливаем дефолтный язык при первом запуске
+        if UserDefaults.standard.string(forKey: "selectedLanguage") == nil {
+            UserDefaults.standard.set("en", forKey: "selectedLanguage")
+        }
+    }
     
     weak var delegate: HeaderButtonsManagerDelegate?
     
@@ -47,33 +53,32 @@ class HeaderButtonsManager {
         }
     }
     
+    // MARK: - Язык
     var selectedLanguage: String {
         get { UserDefaults.standard.string(forKey: "selectedLanguage") ?? "en" }
         set {
             UserDefaults.standard.set(newValue, forKey: "selectedLanguage")
-            delegate?.didUpdateButtonStates()
+            NotificationCenter.default.post(name: .languageChanged, object: nil)
         }
+    }
+    
+    func setLanguage(_ code: String) {
+        selectedLanguage = code
     }
     
     // MARK: - Методы переключения
     func toggleFaceID() { isFaceIDEnabled.toggle() }
     
-    // MARK: - Методы переключения
     func toggleDoneOnly() {
-        if !isDoneOnlyEnabled {
-            isNotDoneOnlyEnabled = false // отключаем противоположную
-        }
+        if !isDoneOnlyEnabled { isNotDoneOnlyEnabled = false }
         isDoneOnlyEnabled.toggle()
         delegate?.didUpdateButtonStates()
     }
-
+    
     func toggleNotDoneOnly() {
-        if !isNotDoneOnlyEnabled {
-            isDoneOnlyEnabled = false // отключаем противоположную
-        }
+        if !isNotDoneOnlyEnabled { isDoneOnlyEnabled = false }
         isNotDoneOnlyEnabled.toggle()
         delegate?.didUpdateButtonStates()
     }
-    
-    func setLanguage(_ code: String) { selectedLanguage = code }
 }
+

@@ -62,12 +62,14 @@ class LanguageSelectionView: UIView {
         }
         updateSelected()
     }
+    
 
     @objc private func languageTapped(_ sender: UIButton) {
         let code = sender.tag == 0 ? "ru" : "en"
         HeaderButtonsManager.shared.setLanguage(code)
         updateSelected()
         delegate?.didSelectLanguage(code)
+        // уведомление уже отправлено автоматически через HeaderButtonsManager
     }
 
     private func updateSelected() {
