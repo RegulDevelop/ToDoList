@@ -138,6 +138,8 @@ class TasksViewController: UIViewController,
         setupTableView()
         setupFooter()
         setupHeaderButtonActions()
+        // Настройка меню языка
+        setupLanguageButtonMenu()
         
         updateHeaderButtonUI()
         
@@ -206,34 +208,15 @@ class TasksViewController: UIViewController,
             // Face ID выключен — сразу скрываем overlay и показываем задачи
             authOverlayView.removeFromSuperview()
         }
-        //        // Загружаем задачи
-        //        viewModel.loadTasks { [weak self] in
-        //            DispatchQueue.main.async {
-        //                self?.filteredTasks = self?.viewModel.tasks ?? []
-        //                self?.tableView.reloadData()
-        //                self?.updateTasksCount()
-        //            }
-        //        }
         
         viewModel.loadTasks { [weak self] in
             DispatchQueue.main.async {
                 self?.applySorting()   // ← применяем сохранённый фильтр
-                self?.tableView.reloadData() 
+                self?.tableView.dragInteractionEnabled = self?.currentSort == .customOrder
+                self?.tableView.reloadData()
             }
         }
         
-//         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-//            guard let self = self else { return }
-//            
-//            // обновляем только видимые ячейки
-//            for cell in self.tableView.visibleCells {
-//                if let taskCell = cell as? TaskTableViewCell,
-//                   let indexPath = self.tableView.indexPath(for: taskCell) {
-//                    let task = self.filteredTasks[indexPath.row]
-//                    taskCell.configure(with: task)
-//                }
-//            }
-//        }
     }
     
     
@@ -244,47 +227,47 @@ class TasksViewController: UIViewController,
         filterTasks()
     }
     
-    //    // Функция для планирования уведомления
-    //    func scheduleNotification(for task: TaskEntity) {
-    //        guard let remindDate = task.remindAt else { return }
-    //
-    //            let content = UNMutableNotificationContent()
-    //            content.title = task.title ?? "Напоминание"
-    //            content.body = task.taskDescription ?? ""
-    //            content.sound = UNNotificationSound.default
-    //
-    //            let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: remindDate)
-    //            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
-    //
-    //            let identifier = String(task.id) // task.id — Int64
-    //            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-    //
-    //            UNUserNotificationCenter.current().add(request) { error in
-    //                if let error = error {
-    //                    print("Ошибка при добавлении уведомления: \(error)")
-    //                } else {
-    //                    print("Уведомление запланировано на \(remindDate)")
-    //                }
-    //            }
-    //    }
-    
     @objc private func handleTaskUpdate(_ notification: Notification) {
-//        guard let task = notification.object as? TaskEntity else { return }
-        
-//        if let index = filteredTasks.firstIndex(of: task) {
-//            let indexPath = IndexPath(row: index, section: 0)
-//            tableView.reloadRows(at: [indexPath], with: .automatic)
-//        }
-        
         guard let task = notification.object as? TaskEntity else { return }
-
+        
         if let index = filteredTasks.firstIndex(of: task) {
             let indexPath = IndexPath(row: index, section: 0)
-
+            
             tableView.reloadRows(at: [indexPath], with: .automatic)
         }
     }
     
+    // Меню выбора языка
+    
+    private func setupLanguageButtonMenu() {
+        headerLanguageButton.showsMenuAsPrimaryAction = true
+        updateLanguageButtonMenu()
+    }
+    
+    private func updateLanguageButtonMenu() {
+        let russian = UIAction(
+            title: "Русский",
+            state: HeaderButtonsManager.shared.selectedLanguage == "ru" ? .on : .off
+        ) { [weak self] _ in
+            HeaderButtonsManager.shared.setLanguage("ru")
+            self?.updateHeaderButtonUI()
+            // Здесь можно добавить обновление всех лейблов и UI
+            self?.tableView.reloadData()
+        }
+        
+        let english = UIAction(
+            title: "English",
+            state: HeaderButtonsManager.shared.selectedLanguage == "en" ? .on : .off
+        ) { [weak self] _ in
+            HeaderButtonsManager.shared.setLanguage("en")
+            self?.updateHeaderButtonUI()
+            // Обновляем все элементы интерфейса на английский
+            self?.tableView.reloadData()
+        }
+        
+        let menu = UIMenu(title: "Язык", children: [russian, english])
+        headerLanguageButton.menu = menu
+    }
     
     // MARK: - Настройки поиска
     // Когда меняется текст в поиске
@@ -395,7 +378,7 @@ class TasksViewController: UIViewController,
     
     // MARK: - Настройка TableView
     private func setupTableView() {
-        tableView.dragInteractionEnabled = true // Включаем drag
+        tableView.dragInteractionEnabled = false // Включаем drag
         tableView.dragDelegate = self
         tableView.dropDelegate = self
         
@@ -454,14 +437,14 @@ class TasksViewController: UIViewController,
         
         setupSortButtonMenu()
         
-//        sortButton.addTarget(self, action: #selector(showSortMenu), for: .touchUpInside)
+        //        sortButton.addTarget(self, action: #selector(showSortMenu), for: .touchUpInside)
     }
     
     private func setupSortButtonMenu() {
         sortButton.showsMenuAsPrimaryAction = true
         updateSortButtonMenu()
     }
-
+    
     private func updateSortButtonMenu() {
         let sortAZ = UIAction(title: "От А до Я", image: UIImage(systemName: "textformat.abc"), state: currentSort == .az ? .on : .off) { [weak self] _ in
             guard let self = self else { return }
@@ -470,7 +453,7 @@ class TasksViewController: UIViewController,
             self.applySorting()
             self.updateSortButtonMenu() // обновляем галочку
         }
-
+        
         let sortZA = UIAction(title: "От Я до А", image: UIImage(systemName: "textformat.abc.dottedunderline"), state: currentSort == .za ? .on : .off) { [weak self] _ in
             guard let self = self else { return }
             self.currentSort = .za
@@ -478,7 +461,7 @@ class TasksViewController: UIViewController,
             self.applySorting()
             self.updateSortButtonMenu()
         }
-
+        
         let sortByDateUp = UIAction(title: "По дате ↑", image: UIImage(systemName: "calendar"), state: currentSort == .dateUp ? .on : .off) { [weak self] _ in
             guard let self = self else { return }
             self.currentSort = .dateUp
@@ -486,7 +469,7 @@ class TasksViewController: UIViewController,
             self.applySorting()
             self.updateSortButtonMenu()
         }
-
+        
         let sortByDateDown = UIAction(title: "По дате ↓", image: UIImage(systemName: "calendar"), state: currentSort == .dateDown ? .on : .off) { [weak self] _ in
             guard let self = self else { return }
             self.currentSort = .dateDown
@@ -494,7 +477,7 @@ class TasksViewController: UIViewController,
             self.applySorting()
             self.updateSortButtonMenu()
         }
-
+        
         let customOrder = UIAction(title: "Свой порядок", image: UIImage(systemName: "arrow.up.arrow.down.square"), state: currentSort == .customOrder ? .on : .off) { [weak self] _ in
             guard let self = self else { return }
             self.currentSort = .customOrder
@@ -502,7 +485,7 @@ class TasksViewController: UIViewController,
             self.applySorting()
             self.updateSortButtonMenu()
         }
-
+        
         let menu = UIMenu(title: "Сортировка", children: [sortByDateUp, sortByDateDown, sortZA, sortAZ, customOrder])
         sortButton.menu = menu
     }
@@ -600,37 +583,6 @@ class TasksViewController: UIViewController,
     
     // faceID
     @objc private func faceIDTapped() {
-        //        HeaderButtonsManager.shared.toggleFaceID()
-        //            updateHeaderButtonUI()
-        //
-        //            // Проверяем симулятор
-        //            #if targetEnvironment(simulator)
-        //            print("Face ID недоступен на симуляторе")
-        //            HeaderButtonsManager.shared.isFaceIDEnabled = false
-        //            updateHeaderButtonUI()
-        //            return
-        //            #endif
-        //
-        //            // Проверяем доступность Face ID
-        //            guard FaceIDManager.shared.isFaceIDAvailable() else {
-        //                let alert = UIAlertController(title: "Ошибка", message: "Face ID недоступен на этом устройстве.", preferredStyle: .alert)
-        //                alert.addAction(UIAlertAction(title: "Ок", style: .default))
-        //                present(alert, animated: true)
-        //                HeaderButtonsManager.shared.isFaceIDEnabled = false
-        //                updateHeaderButtonUI()
-        //                return
-        //            }
-        //
-        //            // Запуск Face ID
-        //            FaceIDManager.shared.authenticateUser { success, error in
-        //                if success {
-        //                    print("Face ID прошёл успешно")
-        //                } else {
-        //                    print("Face ID не прошёл или отменён")
-        //                    HeaderButtonsManager.shared.isFaceIDEnabled = false
-        //                    self.updateHeaderButtonUI()
-        //                }
-        //            }
         
 #if targetEnvironment(simulator)
         print("Face ID недоступен на симуляторе")
@@ -700,9 +652,11 @@ class TasksViewController: UIViewController,
     // Обновление цвета кнопок по состоянию
     private func updateHeaderButtonUI() {
         headerFaceIdButton.tintColor = HeaderButtonsManager.shared.isFaceIDEnabled ? .systemYellow : .systemGray
-        headerDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isDoneOnlyEnabled ? .systemYellow : .systemGray
-        headerNotDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isNotDoneOnlyEnabled ? .systemYellow : .systemGray
-        headerLanguageButton.tintColor = HeaderButtonsManager.shared.selectedLanguage == "en" ? .systemGray : .systemYellow
+            headerDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isDoneOnlyEnabled ? .systemYellow : .systemGray
+            headerNotDoneOnlyButton.tintColor = HeaderButtonsManager.shared.isNotDoneOnlyEnabled ? .systemYellow : .systemGray
+            
+            // Кнопка языка всегда желтая
+            headerLanguageButton.tintColor = .systemYellow
     }
     
     // Фильтрация задач для Done/NotDone
@@ -721,9 +675,6 @@ class TasksViewController: UIViewController,
     }
     
     private func updateTasksCount() {
-        //        let count = viewModel.tasks.count
-        //        tasksCountLabel.text = "Всего задач: \(count)"
-        
         let count: Int
         let text: String
         
@@ -748,162 +699,6 @@ class TasksViewController: UIViewController,
         let topIndexPath = IndexPath(row: 0, section: 0)
         tableView.scrollToRow(at: topIndexPath, at: .top, animated: true)
     }
-    
-//    @objc private func showSortMenu() {
-//        
-////        // Загружаем сохранённый сорт
-////        if let savedSort = UserDefaults.standard.string(forKey: "tasksSort"),
-////           let sort = SortType(rawValue: savedSort) {
-////            currentSort = sort
-////        }
-////        
-////        let sortAZ = UIAction(
-////            title: "От А до Я",
-////            image: UIImage(systemName: "textformat.abc"),
-////            state: currentSort == .az ? .on : .off
-////        ) { [weak self] _ in
-////            guard let self = self else { return }
-////            self.currentSort = .az
-////            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-////            self.applySorting()
-////            self.showSortMenu() // ← обновляем меню сразу
-////        }
-////        
-////        let sortZA = UIAction(
-////            title: "От Я до А",
-////            image: UIImage(systemName: "textformat.abc.dottedunderline"),
-////            state: currentSort == .za ? .on : .off
-////        ) { [weak self] _ in
-////            guard let self = self else { return }
-////            self.currentSort = .za
-////            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-////            self.applySorting()
-////            self.showSortMenu()
-////        }
-////        
-////        let sortByDateUp = UIAction(
-////            title: "По дате ↑",
-////            image: UIImage(systemName: "calendar"),
-////            state: currentSort == .dateUp ? .on : .off
-////        ) { [weak self] _ in
-////            guard let self = self else { return }
-////            self.currentSort = .dateUp
-////            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-////            self.applySorting()
-////            self.showSortMenu()
-////        }
-////        
-////        let sortByDateDown = UIAction(
-////            title: "По дате ↓",
-////            image: UIImage(systemName: "calendar"),
-////            state: currentSort == .dateDown ? .on : .off
-////        ) { [weak self] _ in
-////            guard let self = self else { return }
-////            self.currentSort = .dateDown
-////            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-////            self.applySorting()
-////            self.showSortMenu()
-////        }
-////        
-////        let customOrderAction = UIAction(
-////            title: "Свой порядок",
-////            image: UIImage(systemName: "arrow.up.arrow.down.square"),
-////            state: currentSort == .customOrder ? .on : .off
-////        ) { [weak self] _ in
-////            guard let self = self else { return }
-////            
-////            self.currentSort = .customOrder
-////            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-////            
-////            self.applySorting()
-////        }
-////        
-////        let menu = UIMenu(title: "Сортировка", children: [
-////            sortByDateUp,
-////            sortByDateDown,
-////            sortZA,
-////            sortAZ,
-////            customOrderAction
-////        ])
-////        
-////        sortButton.menu = menu
-////        sortButton.showsMenuAsPrimaryAction = true
-//        
-//        // Загружаем сохранённый сорт
-//            if let savedSort = UserDefaults.standard.string(forKey: "tasksSort"),
-//               let sort = SortType(rawValue: savedSort) {
-//                currentSort = sort
-//            }
-//
-//            func makeMenu() -> UIMenu {
-//                let sortAZ = UIAction(
-//                    title: "От А до Я",
-//                    image: UIImage(systemName: "textformat.abc"),
-//                    state: currentSort == .az ? .on : .off
-//                ) { [weak self] _ in
-//                    guard let self = self else { return }
-//                    self.currentSort = .az
-//                    UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-//                    self.applySorting()
-//                    self.showSortMenu() // ← только если хочешь сразу обновлять галочку
-//                }
-//
-//                let sortZA = UIAction(
-//                    title: "От Я до А",
-//                    image: UIImage(systemName: "textformat.abc.dottedunderline"),
-//                    state: currentSort == .za ? .on : .off
-//                ) { [weak self] _ in
-//                    guard let self = self else { return }
-//                    self.currentSort = .za
-//                    UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-//                    self.applySorting()
-//                    self.showSortMenu()
-//                }
-//
-//                let sortByDateUp = UIAction(
-//                    title: "По дате ↑",
-//                    image: UIImage(systemName: "calendar"),
-//                    state: currentSort == .dateUp ? .on : .off
-//                ) { [weak self] _ in
-//                    guard let self = self else { return }
-//                    self.currentSort = .dateUp
-//                    UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-//                    self.applySorting()
-//                    self.showSortMenu()
-//                }
-//
-//                let sortByDateDown = UIAction(
-//                    title: "По дате ↓",
-//                    image: UIImage(systemName: "calendar"),
-//                    state: currentSort == .dateDown ? .on : .off
-//                ) { [weak self] _ in
-//                    guard let self = self else { return }
-//                    self.currentSort = .dateDown
-//                    UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-//                    self.applySorting()
-//                    self.showSortMenu()
-//                }
-//
-//                let customOrderAction = UIAction(
-//                    title: "Свой порядок",
-//                    image: UIImage(systemName: "arrow.up.arrow.down.square"),
-//                    state: currentSort == .customOrder ? .on : .off
-//                ) { [weak self] _ in
-//                    guard let self = self else { return }
-//                    self.currentSort = .customOrder
-//                    UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-//                    self.applySorting()
-//                    self.showSortMenu()
-//                }
-//
-//                return UIMenu(title: "Сортировка", children: [
-//                    sortByDateUp, sortByDateDown, sortZA, sortAZ, customOrderAction
-//                ])
-//            }
-//
-//            sortButton.menu = makeMenu()
-//            sortButton.showsMenuAsPrimaryAction = true
-//    }
     
     // метод применения сортировки
     private func applySorting() {
@@ -931,21 +726,13 @@ class TasksViewController: UIViewController,
         }
         
         filterTasks()
+        
+        tableView.dragInteractionEnabled = currentSort == .customOrder
     }
     
     
     // MARK: - Добавление новой задачи
     @objc private func addTaskTapped() {
-        
-        //        let addVC = AddTaskViewController()
-        //            addVC.delegate = self
-        //
-        //            if let sheet = addVC.sheetPresentationController {
-        //                sheet.detents = [.large()]
-        //                sheet.prefersGrabberVisible = true
-        //            }
-        //
-        //            present(addVC, animated: true)
         
         let addVC = AddTaskViewController()
         addVC.delegate = self
@@ -963,7 +750,6 @@ class TasksViewController: UIViewController,
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        //        return isSearching ? filteredTasks.count : viewModel.tasks.count
         return filteredTasks.count
     }
     
@@ -1014,37 +800,6 @@ class TasksViewController: UIViewController,
     // Свайп влево → удаление задачи
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-        //        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
-        //
-        //            guard let self = self else { return }
-        //
-        //            // Берём задачу из отображаемого массива
-        //            let task = self.filteredTasks[indexPath.row]
-        //
-        //            if let taskId = task.id?.uuidString {
-        //                    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [taskId])
-        //            }
-        //
-        //            // Находим её в основном массиве
-        //            if let index = self.viewModel.tasks.firstIndex(of: task) {
-        //                self.viewModel.deleteTask(at: index)
-        //            }
-        //
-        //            // Пересчитываем отображаемые задачи
-        //            self.filterTasks()
-        //            self.updateTasksCount()
-        //
-        //            completionHandler(true)
-        //        }
-        //
-        //        deleteAction.backgroundColor = UIColor.systemRed
-        //        deleteAction.image = UIImage(systemName: "trash.fill")
-        //
-        //        let config = UISwipeActionsConfiguration(actions: [deleteAction])
-        //        config.performsFirstActionWithFullSwipe = true
-        //
-        //        return config
-        
         let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
             
             guard let self = self else { return }
@@ -1081,61 +836,33 @@ class TasksViewController: UIViewController,
     // Отмечаем/снимаем задачу как выполненную
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-//        let task = filteredTasks[indexPath.row]
-//        let addVC = AddTaskViewController()
-//        addVC.delegate = self
-//        addVC.isEditingTask = true          // Редактируем задачу
-//        addVC.existingTask = task
-//        addVC.showCompletedSwitch = true
-//        addVC.showShareButton = true
-//
-//        if addVC.isEditingTask {
-//            // Редактирование — fullScreen, не поднимается sheet
-//            addVC.modalPresentationStyle = .formSheet
-//        } else {
-//            // Добавление новой задачи — большой sheet
-//            if let sheet = addVC.sheetPresentationController {
-//                sheet.detents = [.large()]
-//                sheet.prefersGrabberVisible = true
-//            }
-//        }
-//
-//        present(addVC, animated: true)
-        
         let task = filteredTasks[indexPath.row]
         
         // Если задача завершена — не открываем редактирование
-            if task.isCompleted {
-                tableView.deselectRow(at: indexPath, animated: true) // снимаем выделение
-                return
-            }
-            
-            // Только незавершённые задачи можно редактировать
-            let addVC = AddTaskViewController()
-            addVC.delegate = self
-            addVC.isEditingTask = true
-            addVC.existingTask = task
-            addVC.showCompletedSwitch = true
-            addVC.showShareButton = true
-            
-            if let sheet = addVC.sheetPresentationController {
-                sheet.detents = [.large()]
-                sheet.prefersGrabberVisible = true
-            }
-            
-            present(addVC, animated: true)
+        if task.isCompleted {
+            tableView.deselectRow(at: indexPath, animated: true) // снимаем выделение
+            return
+        }
         
+        // Только незавершённые задачи можно редактировать
+        let addVC = AddTaskViewController()
+        addVC.delegate = self
+        addVC.isEditingTask = true
+        addVC.existingTask = task
+        addVC.showCompletedSwitch = true
+        addVC.showShareButton = true
         
+        if let sheet = addVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        
+        present(addVC, animated: true)
         
     }
     
     // Разрешаем редактирование ячеек (чтобы включить drag & drop)
     func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        
-//        return currentSort == .customOrder &&
-//                  !isSearching &&
-//                  !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
-//                  !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
         
         return currentSort == .customOrder && !isSearching
     }
@@ -1143,44 +870,27 @@ class TasksViewController: UIViewController,
     // Обновляем модель при перемещении
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         
-        
-//        guard currentSort == .customOrder else { return }
-//
-//        let movedTask = viewModel.tasks[sourceIndexPath.row]
-//
-//        viewModel.tasks.remove(at: sourceIndexPath.row)
-//        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
-//
-//        // обновляем порядок
-//        for (index, task) in viewModel.tasks.enumerated() {
-//            task.order = Int64(index)
-//        }
-//
-//        CoreDataManager.shared.saveContext()
-//        filterTasks()
-//        updateTasksCount()
-        
         guard currentSort == .customOrder else { return }
-
-            let movedTask = filteredTasks[sourceIndexPath.row]
-
-            // индексы в основном массиве
-            guard let sourceIndex = viewModel.tasks.firstIndex(of: movedTask) else { return }
-
-            let destinationTask = filteredTasks[destinationIndexPath.row]
-            guard let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) else { return }
-
-            viewModel.tasks.remove(at: sourceIndex)
-            viewModel.tasks.insert(movedTask, at: destinationIndex)
-
-            // обновляем order
-            for (index, task) in viewModel.tasks.enumerated() {
-                task.order = Int64(index)
-            }
-
-            CoreDataManager.shared.saveContext()
-
-            filterTasks()
+        
+        let movedTask = filteredTasks[sourceIndexPath.row]
+        
+        // индексы в основном массиве
+        guard let sourceIndex = viewModel.tasks.firstIndex(of: movedTask) else { return }
+        
+        let destinationTask = filteredTasks[destinationIndexPath.row]
+        guard let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) else { return }
+        
+        viewModel.tasks.remove(at: sourceIndex)
+        viewModel.tasks.insert(movedTask, at: destinationIndex)
+        
+        // обновляем order
+        for (index, task) in viewModel.tasks.enumerated() {
+            task.order = Int64(index)
+        }
+        
+        CoreDataManager.shared.saveContext()
+        
+        filterTasks()
     }
     
     
@@ -1188,49 +898,21 @@ class TasksViewController: UIViewController,
 
 extension TasksViewController: UITableViewDragDelegate {
     
-    //    func tableView(_ tableView: UITableView,
-    //                       itemsForBeginning session: UIDragSession,
-    //                       at indexPath: IndexPath) -> [UIDragItem] {
-    //
-    //        let task = viewModel.tasks[indexPath.row]
-    //        let titleString: NSString = task.title as NSString? ?? "" // <-- явный тип
-    //        let itemProvider = NSItemProvider(object: titleString)
-    //        let dragItem = UIDragItem(itemProvider: itemProvider)
-    //        dragItem.localObject = task
-    //        return [dragItem]
-    //    }
-    
     func tableView(_ tableView: UITableView,
                    itemsForBeginning session: UIDragSession,
                    at indexPath: IndexPath) -> [UIDragItem] {
         
+        guard currentSort == .customOrder else {
+            return []
+        }
         
-//        // Разрешаем drag только при сортировке customOrder
-//            guard currentSort == .customOrder,
-//                  !isSearching,
-//                  !HeaderButtonsManager.shared.isDoneOnlyEnabled,
-//                  !HeaderButtonsManager.shared.isNotDoneOnlyEnabled else {
-//                return []
-//            }
-//            
-//            let task = viewModel.tasks[indexPath.row] // берём из основного массива
-//            let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
-//            let dragItem = UIDragItem(itemProvider: itemProvider)
-//            dragItem.localObject = task
-//            return [dragItem]
+        let task = filteredTasks[indexPath.row]
         
-        guard currentSort == .customOrder,
-                  !isSearching else {
-                return []
-            }
-
-            let task = filteredTasks[indexPath.row]
-
-            let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
-            let dragItem = UIDragItem(itemProvider: itemProvider)
-            dragItem.localObject = task
-
-            return [dragItem]
+        let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        dragItem.localObject = task
+        
+        return [dragItem]
     }
 }
 
@@ -1270,18 +952,9 @@ extension TasksViewController: UITableViewDropDelegate {
     func tableView(_ tableView: UITableView,
                    canHandle session: UIDropSession) -> Bool {
         
-        //        return !isSearching && session.localDragSession != nil
-        
-//        // Разрешаем drop только при локальном drag и отсутствии фильтра/поиска
-//        return !isSearching &&
-//        !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
-//        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled &&
-//        session.localDragSession != nil
-        
         return currentSort == .customOrder &&
         !isSearching &&
-        !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
-        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
+        session.localDragSession != nil
     }
     
     
@@ -1291,50 +964,29 @@ extension TasksViewController: AddTaskViewControllerDelegate {
     
     func didAddTask(_ task: TaskEntity) {
         
-//        if let index = viewModel.tasks.firstIndex(of: task) {
-//            viewModel.tasks[index] = task
-//        } else {
-//            viewModel.tasks.insert(task, at: 0)
-//        }
-//        
-//        updateTasksCount()
-//        filterTasks()
-//        
-//        //        // Планируем уведомление, если есть remindAt
-//        //        if task.remindAt != nil {
-//        //            scheduleNotification(for: task)
-//        //        }
-//        
-//        tableView.reloadData()
-//        
-//        // Прокрутка наверх
-//        if !filteredTasks.isEmpty {
-//            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-//        }
-        
         if let index = viewModel.tasks.firstIndex(of: task) {
-               
-               // РЕДАКТИРОВАНИЕ
-               viewModel.tasks[index] = task
-               
-               if let filteredIndex = filteredTasks.firstIndex(of: task) {
-                   let indexPath = IndexPath(row: filteredIndex, section: 0)
-                   tableView.reloadRows(at: [indexPath], with: .automatic)
-               }
-
-           } else {
-               
-               // ДОБАВЛЕНИЕ НОВОЙ ЗАДАЧИ
-               viewModel.tasks.insert(task, at: 0)
-               filterTasks()
-               tableView.reloadData()
-
-               if !filteredTasks.isEmpty {
-                   tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-               }
-           }
-
-           updateTasksCount()
+            
+            // РЕДАКТИРОВАНИЕ
+            viewModel.tasks[index] = task
+            
+            if let filteredIndex = filteredTasks.firstIndex(of: task) {
+                let indexPath = IndexPath(row: filteredIndex, section: 0)
+                tableView.reloadRows(at: [indexPath], with: .automatic)
+            }
+            
+        } else {
+            
+            // ДОБАВЛЕНИЕ НОВОЙ ЗАДАЧИ
+            viewModel.tasks.insert(task, at: 0)
+            filterTasks()
+            tableView.reloadData()
+            
+            if !filteredTasks.isEmpty {
+                tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+            }
+        }
+        
+        updateTasksCount()
         
     }
     
@@ -1358,30 +1010,18 @@ extension TasksViewController: UNUserNotificationCenterDelegate {
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         
-//        // Вызывается, когда уведомление приходит, пока приложение активно
-//        func userNotificationCenter(_ center: UNUserNotificationCenter,
-//                                    willPresent notification: UNNotification,
-//                                    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-//            
-//            // Логируем для отладки, если нужно
-//            print("Notification received: \(notification.request.identifier)")
-//            
-//            // НЕ показываем баннер и звук
-//            completionHandler([])
-//        }
-        
         // Получаем идентификатор уведомления
         let id = notification.request.identifier
-            
-            let tasks = CoreDataManager.shared.fetchTasks()
-            if let task = tasks.first(where: { $0.notificationId == id }) {
-                task.hasReminderTriggered = true
-                CoreDataManager.shared.saveContext()
-                NotificationCenter.default.post(name: .taskUpdated, object: task)
-            }
-
-            // Показываем баннер + звук
-            completionHandler([.banner, .sound])
+        
+        let tasks = CoreDataManager.shared.fetchTasks()
+        if let task = tasks.first(where: { $0.notificationId == id }) {
+            task.hasReminderTriggered = true
+            CoreDataManager.shared.saveContext()
+            NotificationCenter.default.post(name: .taskUpdated, object: task)
+        }
+        
+        // Показываем баннер + звук
+        completionHandler([.banner, .sound])
     }
 }
 

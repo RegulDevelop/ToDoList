@@ -104,7 +104,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         let picker = UIDatePicker()
         picker.datePickerMode = .dateAndTime
         picker.preferredDatePickerStyle = .wheels
-        picker.locale = Locale.current
+        picker.locale = Locale(identifier: "ru_RU") // <-- русский язык
         picker.minimumDate = Date() // нельзя выбрать прошедшую дату
         picker.tintColor = .systemYellow
         return picker
@@ -302,8 +302,12 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     private func setupRemindPicker() {
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
+        toolbar.barTintColor = .systemBackground // фон тулбара (можно светлый)
+        toolbar.tintColor = .systemYellow       // цвет кнопок на тулбаре
         
-        let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(donePickingDate))
+        // Кнопка Done с галочкой
+        let doneButton = UIBarButtonItem(title: "✓", style: .prominent, target: self, action: #selector(donePickingDate))
+        doneButton.tintColor = .systemYellow
         toolbar.setItems([doneButton], animated: true)
         
         remindTextField.inputAccessoryView = toolbar
