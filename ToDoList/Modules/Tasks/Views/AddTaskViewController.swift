@@ -19,7 +19,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     var isEditingTask = false
     var showCompletedSwitch = false
     var showShareButton = false
-
+    
     weak var delegate: AddTaskViewControllerDelegate?
     
     private let shareButton: UIButton = {
@@ -39,7 +39,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         tl.font = .systemFont(ofSize: 18, weight: .bold)
         return tl
     }()
-
+    
     private let titleTextField: UITextField = {
         let tf = UITextField()
         tf.placeholder = "Название задачи"
@@ -59,7 +59,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         dl.font = .systemFont(ofSize: 18, weight: .bold)
         return dl
     }()
-
+    
     private let descriptionTextView: UITextView = {
         let tv = UITextView()
         tv.backgroundColor = .black
@@ -109,14 +109,14 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         picker.tintColor = .systemYellow
         return picker
     }()
-
+    
     private let completedSwitch: UISwitch = {
         let sw = UISwitch()
         sw.isOn = false
         sw.onTintColor = .systemYellow
         return sw
     }()
-
+    
     private let completedLabel: UILabel = {
         let label = UILabel()
         label.text = "Отметить как выполнено:"
@@ -139,7 +139,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         label.font = .systemFont(ofSize: 18, weight: .bold)
         return label
     }()
-
+    
     private let saveButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("Добавить", for: .normal)
@@ -159,7 +159,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         btn.layer.cornerRadius = 20
         return btn
     }()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -184,7 +184,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         
         completedSwitch.isHidden = !showCompletedSwitch
         completedLabel.isHidden = !showCompletedSwitch
-            
+        
         shareButton.isHidden = !showShareButton
         
         // Добавляем распознаватель жестов
@@ -197,18 +197,18 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-
+    
     private func setupViews() {
         
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
-
+        
         [titleLabel, titleTextField, descriptionLabel, descriptionTextView, descriptionPlaceholder, completedLabel, completedSwitch, shareButton, cancelButton, saveButton, remindLabel, remindTextField].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
-
+        
         // MARK: - Верхние поля
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
@@ -217,20 +217,20 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             shareButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 15),
             shareButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
             shareButton.heightAnchor.constraint(equalToConstant: 50),
-
+            
             titleTextField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             titleTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             titleTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             titleTextField.heightAnchor.constraint(equalToConstant: 44),
-
+            
             descriptionLabel.topAnchor.constraint(equalTo: titleTextField.bottomAnchor, constant: 20),
             descriptionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
-
+            
             descriptionTextView.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 8),
             descriptionTextView.leadingAnchor.constraint(equalTo: titleTextField.leadingAnchor),
             descriptionTextView.trailingAnchor.constraint(equalTo: titleTextField.trailingAnchor),
             descriptionTextView.heightAnchor.constraint(equalToConstant: 250),
-
+            
             descriptionPlaceholder.topAnchor.constraint(equalTo: descriptionTextView.topAnchor, constant: 10),
             descriptionPlaceholder.leadingAnchor.constraint(equalTo: descriptionTextView.leadingAnchor, constant: 15),
             
@@ -242,7 +242,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             remindTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             remindTextField.heightAnchor.constraint(equalToConstant: 44),
         ])
-
+        
         // Switch stack
         let switchStack = UIStackView(arrangedSubviews: [])
         switchStack.axis = .horizontal
@@ -265,7 +265,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         view.addSubview(switchImportantStack)
         switchImportantStack.addArrangedSubview(importantLabel)
         switchImportantStack.addArrangedSubview(importantSwitch)
-
+        
         // Buttons stack
         let buttonsStack = UIStackView(arrangedSubviews: [cancelButton, saveButton])
         buttonsStack.axis = .horizontal
@@ -277,12 +277,12 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             $0.heightAnchor.constraint(equalToConstant: 50).isActive = true
             $0.widthAnchor.constraint(equalToConstant: 150).isActive = true
         }
-
+        
         // ✅ Разные отступы для добавления и редактирования
         let switchTopOffset: CGFloat = isEditingTask ? 20 : 20
         let switchImportantTopOffset: CGFloat = isEditingTask ? 50 : 5
         let buttonsTopOffset: CGFloat = isEditingTask ? 40 : 40
-
+        
         NSLayoutConstraint.activate([
             switchStack.topAnchor.constraint(equalTo: remindTextField.bottomAnchor, constant: switchTopOffset),
             switchStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
@@ -291,7 +291,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             switchImportantStack.topAnchor.constraint(equalTo: switchStack.topAnchor, constant: switchImportantTopOffset),
             switchImportantStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
             switchImportantStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
-
+            
             buttonsStack.topAnchor.constraint(equalTo: switchImportantStack.bottomAnchor, constant: buttonsTopOffset),
             buttonsStack.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
@@ -309,7 +309,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         remindTextField.inputAccessoryView = toolbar
         remindTextField.inputView = remindDatePicker
     }
-
+    
     @objc private func donePickingDate() {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
@@ -341,98 +341,108 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         activityVC.popoverPresentationController?.sourceView = self.view // для iPad
         present(activityVC, animated: true)
     }
-
+    
     @objc private func saveTapped() {
         
-//        guard let title = titleTextField.text, !title.isEmpty else { return }
-//        let description = descriptionTextView.text ?? ""
-//        let isCompleted = completedSwitch.isOn
-//        let isImportant = importantSwitch.isOn
-//
-//        if isEditingTask, let task = existingTask {
-//            // Редактируем существующую задачу
-//            task.title = title
-//            task.taskDescription = description
-//            task.isCompleted = isCompleted
-//            task.isImportant = isImportant
-//            CoreDataManager.shared.saveContext()
-//            delegate?.didAddTask(task)
-//        } else {
-//            // Создаём новую задачу сверху
-//            let newTask = TaskEntity(context: CoreDataManager.shared.context)
-//            newTask.title = title
-//            newTask.taskDescription = description
-//            newTask.isCompleted = isCompleted
-//            newTask.isImportant = isImportant
-//            newTask.createdAt = Date()
-//            newTask.remindAt = remindDatePicker.date
-//            newTask.order = 0  // <-- новая задача в начале
-//
-//            // Смещаем все существующие задачи вниз
-//            let tasks = CoreDataManager.shared.fetchTasks()
-//            for task in tasks {
-//                task.order += 1
-//            }
-//
-//            CoreDataManager.shared.saveContext()
-//            delegate?.didAddTask(newTask)
-//        }
-//
-//        dismiss(animated: true)
+        //        guard let title = titleTextField.text, !title.isEmpty else { return }
+        //        let description = descriptionTextView.text ?? ""
+        //        let isCompleted = completedSwitch.isOn
+        //        let isImportant = importantSwitch.isOn
+        //
+        //        if isEditingTask, let task = existingTask {
+        //            // Редактируем существующую задачу
+        //            task.title = title
+        //            task.taskDescription = description
+        //            task.isCompleted = isCompleted
+        //            task.isImportant = isImportant
+        //            CoreDataManager.shared.saveContext()
+        //            delegate?.didAddTask(task)
+        //        } else {
+        //            // Создаём новую задачу сверху
+        //            let newTask = TaskEntity(context: CoreDataManager.shared.context)
+        //            newTask.title = title
+        //            newTask.taskDescription = description
+        //            newTask.isCompleted = isCompleted
+        //            newTask.isImportant = isImportant
+        //            newTask.createdAt = Date()
+        //            newTask.remindAt = remindDatePicker.date
+        //            newTask.order = 0  // <-- новая задача в начале
+        //
+        //            // Смещаем все существующие задачи вниз
+        //            let tasks = CoreDataManager.shared.fetchTasks()
+        //            for task in tasks {
+        //                task.order += 1
+        //            }
+        //
+        //            CoreDataManager.shared.saveContext()
+        //            delegate?.didAddTask(newTask)
+        //        }
+        //
+        //        dismiss(animated: true)
         
         guard let title = titleTextField.text, !title.isEmpty else { return }
-           let description = descriptionTextView.text ?? ""
-           let isCompleted = completedSwitch.isOn
-           let isImportant = importantSwitch.isOn
-           let remindDate = remindDatePicker.date
+        let description = descriptionTextView.text ?? ""
+        let isCompleted = completedSwitch.isOn
+        let isImportant = importantSwitch.isOn
+        let remindDate: Date?
 
-           if isEditingTask, let task = existingTask {
-               // Удаляем старое уведомление
-               CoreDataManager.shared.removeNotification(for: task)
-
-               // Обновляем данные
-               task.title = title
-               task.taskDescription = description
-               task.isCompleted = isCompleted
-               task.isImportant = isImportant
-               task.remindAt = remindDate
-
-               CoreDataManager.shared.saveContext()
-
-               // Планируем новое уведомление, если задача не выполнена
-               if !isCompleted {
-                   CoreDataManager.shared.scheduleNotification(for: task)
-               }
-
-               delegate?.didAddTask(task)
-           } else {
-               // Новая задача
-               let newTask = TaskEntity(context: CoreDataManager.shared.context)
-               newTask.title = title
-               newTask.taskDescription = description
-               newTask.isCompleted = isCompleted
-               newTask.isImportant = isImportant
-               newTask.createdAt = Date()
-               newTask.remindAt = remindDate
-               newTask.order = 0
-
-               // Сдвигаем остальные задачи вниз
-               let tasks = CoreDataManager.shared.fetchTasks()
-               for task in tasks {
-                   task.order += 1
-               }
-
-               CoreDataManager.shared.saveContext()
-
-               // Планируем уведомление
-               if !isCompleted {
-                   CoreDataManager.shared.scheduleNotification(for: newTask)
-               }
-
-               delegate?.didAddTask(newTask)
-           }
-
-           dismiss(animated: true)
+        if remindTextField.text?.isEmpty == false {
+            remindDate = remindDatePicker.date
+        } else if isEditingTask {
+            remindDate = existingTask?.remindAt
+        } else {
+            remindDate = nil
+        }
+        
+        if isEditingTask, let task = existingTask {
+            // Удаляем старое уведомление
+            CoreDataManager.shared.removeNotification(for: task)
+            
+            // Обновляем данные
+            task.title = title
+            task.taskDescription = description
+            task.isCompleted = isCompleted
+            task.isImportant = isImportant
+            task.remindAt = remindDate
+            
+            CoreDataManager.shared.saveContext()
+            
+            // Планируем новое уведомление, если задача не выполнена
+            if let _ = remindDate, !isCompleted {
+                CoreDataManager.shared.scheduleNotification(for: task)
+            } else {
+                CoreDataManager.shared.removeNotification(for: task)
+            }
+            
+            delegate?.didAddTask(task)
+        } else {
+            // Новая задача
+            let newTask = TaskEntity(context: CoreDataManager.shared.context)
+            newTask.title = title
+            newTask.taskDescription = description
+            newTask.isCompleted = isCompleted
+            newTask.isImportant = isImportant
+            newTask.createdAt = Date()
+            newTask.remindAt = remindDate
+            newTask.order = 0
+            
+            // Сдвигаем остальные задачи вниз
+            let tasks = CoreDataManager.shared.fetchTasks()
+            for task in tasks {
+                task.order += 1
+            }
+            
+            CoreDataManager.shared.saveContext()
+            
+            // Планируем уведомление
+            if remindDate != nil && !isCompleted {
+                CoreDataManager.shared.scheduleNotification(for: newTask)
+            }
+            
+            delegate?.didAddTask(newTask)
+        }
+        
+        dismiss(animated: true)
     }
     
     @objc private func cancelTapped() {

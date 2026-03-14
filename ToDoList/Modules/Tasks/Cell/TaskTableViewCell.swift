@@ -14,6 +14,9 @@ class TaskTableViewCell: UITableViewCell {
     private var titleWithCheckConstraint: NSLayoutConstraint!
     private var titleWithoutCheckConstraint: NSLayoutConstraint!
     
+    private var bottomWithReminderConstraint: NSLayoutConstraint!
+    private var bottomWithoutReminderConstraint: NSLayoutConstraint!
+    
     private let containerView: UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.systemGray6
@@ -62,16 +65,21 @@ class TaskTableViewCell: UITableViewCell {
     }()
     
     private let remindIcon: UIImageView = {
-        let iv = UIImageView(image: UIImage(systemName: "alarm.fill"))
+        let iv = UIImageView()
         iv.tintColor = .systemYellow
         iv.isHidden = true
+        //        iv.contentMode = .scaleAspectFit
+        //
+        //        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+        //        iv.preferredSymbolConfiguration = config
+        iv.image = UIImage(systemName: "alarm.waves.left.and.right.fill")
         return iv
     }()
     
     private let remindLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12)
-        label.textColor = .systemYellow
+        label.textColor = .gray
         label.isHidden = true
         return label
     }()
@@ -109,6 +117,10 @@ class TaskTableViewCell: UITableViewCell {
         titleWithCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: checkmarkImageView.trailingAnchor, constant: 10)
         titleWithoutCheckConstraint = titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10)
         
+        bottomWithReminderConstraint = remindLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
+        
+        bottomWithoutReminderConstraint = dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
+        
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 5),
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
@@ -131,7 +143,7 @@ class TaskTableViewCell: UITableViewCell {
             dateLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 5),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             dateLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-//            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+            //            dateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
             
             importantImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             importantImageView.bottomAnchor.constraint(equalTo: dateLabel.bottomAnchor),
@@ -140,14 +152,17 @@ class TaskTableViewCell: UITableViewCell {
             
             remindIcon.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -10),
             remindIcon.centerYAnchor.constraint(equalTo: remindLabel.centerYAnchor),
-            remindIcon.widthAnchor.constraint(equalToConstant: 16),
-            remindIcon.heightAnchor.constraint(equalToConstant: 16),
+            //            remindIcon.widthAnchor.constraint(equalToConstant: 25),
+            //            remindIcon.widthAnchor.constraint(equalTo: remindIcon.heightAnchor, multiplier: 1.0),
+            //            remindIcon.heightAnchor.constraint(equalToConstant: 16),
             
             remindLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 5),
             remindLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             remindLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            remindLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
+            //            remindLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10)
         ])
+        
+        bottomWithoutReminderConstraint.isActive = true
     }
     
     // MARK: - Prepare for reuse
@@ -166,6 +181,9 @@ class TaskTableViewCell: UITableViewCell {
         
         titleWithCheckConstraint.isActive = false
         titleWithoutCheckConstraint.isActive = true
+        
+        bottomWithReminderConstraint?.isActive = false
+        bottomWithoutReminderConstraint?.isActive = true
     }
     
     // MARK: - Конфигурация
@@ -214,54 +232,82 @@ class TaskTableViewCell: UITableViewCell {
         }
         
         // Настройка напоминания
+        //        if let remindAt = task.remindAt {
+        //            remindIcon.isHidden = false
+        //            remindLabel.isHidden = false
+        //            let formatter = DateFormatter()
+        //            formatter.locale = Locale(identifier: "ru_RU")
+        //            formatter.dateStyle = .medium
+        //            formatter.timeStyle = .short
+        //            remindLabel.text = "Напоминание: \(formatter.string(from: remindAt))"
+        //        } else {
+        //            remindIcon.isHidden = true
+        //            remindLabel.isHidden = true
+        //        }
+        
         if let remindAt = task.remindAt {
             remindIcon.isHidden = false
             remindLabel.isHidden = false
+            bottomWithoutReminderConstraint.isActive = false
+            bottomWithReminderConstraint.isActive = true
+            
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "ru_RU")
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
             remindLabel.text = "Напоминание: \(formatter.string(from: remindAt))"
+            
+            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+                       
+               if task.isCompleted || task.hasReminderTriggered {
+                   remindIcon.image = UIImage(systemName: "alarm.fill", withConfiguration: config)
+                   remindIcon.tintColor = .systemGray
+               } else {
+                   remindIcon.image = UIImage(systemName: "alarm.waves.left.and.right.fill", withConfiguration: config)
+                   remindIcon.tintColor = .systemYellow
+               }
         } else {
             remindIcon.isHidden = true
             remindLabel.isHidden = true
-        }
-            
-            // Настройка текста и атрибутов
-            let titleText = task.title ?? ""
-            let descText = task.taskDescription ?? ""
-            
-            let textColor: UIColor
-            
-            if task.isImportant {
-                textColor = .systemYellow
-            } else {
-                textColor = task.isCompleted ? .systemGray : .white
-            }
-            
-            let strikethrough: NSUnderlineStyle = task.isCompleted ? .single : []
-            
-            let titleAttr = NSMutableAttributedString(
-                string: titleText,
-                attributes: [
-                    .foregroundColor: textColor,
-                    .strikethroughStyle: strikethrough.rawValue
-                ]
-            )
-            
-            let descAttr = NSMutableAttributedString(
-                string: descText,
-                attributes: [
-                    .foregroundColor: textColor,
-                    .strikethroughStyle: strikethrough.rawValue
-                ]
-            )
-            
-            // Присваиваем лейблам
-            titleLabel.attributedText = titleAttr
-            descriptionLabel.attributedText = descAttr
+            bottomWithReminderConstraint.isActive = false
+            bottomWithoutReminderConstraint.isActive = true
         }
         
+        // Настройка текста и атрибутов
+        let titleText = task.title ?? ""
+        let descText = task.taskDescription ?? ""
+        
+        let textColor: UIColor
+        
+        if task.isImportant {
+            textColor = .systemYellow
+        } else {
+            textColor = task.isCompleted ? .systemGray : .white
+        }
+        
+        let strikethrough: NSUnderlineStyle = task.isCompleted ? .single : []
+        
+        let titleAttr = NSMutableAttributedString(
+            string: titleText,
+            attributes: [
+                .foregroundColor: textColor,
+                .strikethroughStyle: strikethrough.rawValue
+            ]
+        )
+        
+        let descAttr = NSMutableAttributedString(
+            string: descText,
+            attributes: [
+                .foregroundColor: textColor,
+                .strikethroughStyle: strikethrough.rawValue
+            ]
+        )
+        
+        // Присваиваем лейблам
+        titleLabel.attributedText = titleAttr
+        descriptionLabel.attributedText = descAttr
     }
     
+}
+
 
