@@ -269,13 +269,22 @@ class TasksViewController: UIViewController,
     //    }
     
     @objc private func handleTaskUpdate(_ notification: Notification) {
-        guard let task = notification.object as? TaskEntity else { return }
+//        guard let task = notification.object as? TaskEntity else { return }
         
+//        if let index = filteredTasks.firstIndex(of: task) {
+//            let indexPath = IndexPath(row: index, section: 0)
+//            tableView.reloadRows(at: [indexPath], with: .automatic)
+//        }
+        
+        guard let task = notification.object as? TaskEntity else { return }
+
         if let index = filteredTasks.firstIndex(of: task) {
             let indexPath = IndexPath(row: index, section: 0)
+
             tableView.reloadRows(at: [indexPath], with: .automatic)
         }
     }
+    
     
     // MARK: - Настройки поиска
     // Когда меняется текст в поиске
@@ -1123,39 +1132,55 @@ class TasksViewController: UIViewController,
     // Разрешаем редактирование ячеек (чтобы включить drag & drop)
     func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
         
-        //        return !isSearching && !HeaderButtonsManager.shared.isDoneOnlyEnabled && !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
+//        return currentSort == .customOrder &&
+//                  !isSearching &&
+//                  !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
+//                  !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
         
-        // Разрешаем перемещение только если таблица не фильтруется
-        return !isSearching &&
-        !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
-        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
+        return currentSort == .customOrder && !isSearching
     }
     
     // Обновляем модель при перемещении
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         
-        guard sourceIndexPath != destinationIndexPath else { return }
         
-        let movedTask = filteredTasks[sourceIndexPath.row]
+//        guard currentSort == .customOrder else { return }
+//
+//        let movedTask = viewModel.tasks[sourceIndexPath.row]
+//
+//        viewModel.tasks.remove(at: sourceIndexPath.row)
+//        viewModel.tasks.insert(movedTask, at: destinationIndexPath.row)
+//
+//        // обновляем порядок
+//        for (index, task) in viewModel.tasks.enumerated() {
+//            task.order = Int64(index)
+//        }
+//
+//        CoreDataManager.shared.saveContext()
+//        filterTasks()
+//        updateTasksCount()
         
-        // Находим индексы в основном массиве
-        if let sourceIndex = viewModel.tasks.firstIndex(of: movedTask) {
-            // Если destination выходит за пределы filteredTasks, ставим в конец
-            let destinationTask = filteredTasks[min(destinationIndexPath.row, filteredTasks.count - 1)]
-            let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) ?? viewModel.tasks.count - 1
-            
+        guard currentSort == .customOrder else { return }
+
+            let movedTask = filteredTasks[sourceIndexPath.row]
+
+            // индексы в основном массиве
+            guard let sourceIndex = viewModel.tasks.firstIndex(of: movedTask) else { return }
+
+            let destinationTask = filteredTasks[destinationIndexPath.row]
+            guard let destinationIndex = viewModel.tasks.firstIndex(of: destinationTask) else { return }
+
             viewModel.tasks.remove(at: sourceIndex)
             viewModel.tasks.insert(movedTask, at: destinationIndex)
-            
-            // Обновляем порядок
+
+            // обновляем order
             for (index, task) in viewModel.tasks.enumerated() {
                 task.order = Int64(index)
             }
-            
+
             CoreDataManager.shared.saveContext()
-            filterTasks() // ← обновляем отображаемый массив
-            updateTasksCount()
-        }
+
+            filterTasks()
     }
     
     
@@ -1179,19 +1204,33 @@ extension TasksViewController: UITableViewDragDelegate {
                    itemsForBeginning session: UIDragSession,
                    at indexPath: IndexPath) -> [UIDragItem] {
         
-        // Разрешаем drag только если нет фильтра и поиска
-        guard !isSearching,
-              !HeaderButtonsManager.shared.isDoneOnlyEnabled,
-              !HeaderButtonsManager.shared.isNotDoneOnlyEnabled else {
-            return []
-        }
         
-        let task = viewModel.tasks[indexPath.row]
-        let titleString: NSString = task.title as NSString? ?? ""
-        let itemProvider = NSItemProvider(object: titleString)
-        let dragItem = UIDragItem(itemProvider: itemProvider)
-        dragItem.localObject = task
-        return [dragItem]
+//        // Разрешаем drag только при сортировке customOrder
+//            guard currentSort == .customOrder,
+//                  !isSearching,
+//                  !HeaderButtonsManager.shared.isDoneOnlyEnabled,
+//                  !HeaderButtonsManager.shared.isNotDoneOnlyEnabled else {
+//                return []
+//            }
+//            
+//            let task = viewModel.tasks[indexPath.row] // берём из основного массива
+//            let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
+//            let dragItem = UIDragItem(itemProvider: itemProvider)
+//            dragItem.localObject = task
+//            return [dragItem]
+        
+        guard currentSort == .customOrder,
+                  !isSearching else {
+                return []
+            }
+
+            let task = filteredTasks[indexPath.row]
+
+            let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
+            let dragItem = UIDragItem(itemProvider: itemProvider)
+            dragItem.localObject = task
+
+            return [dragItem]
     }
 }
 
@@ -1233,11 +1272,16 @@ extension TasksViewController: UITableViewDropDelegate {
         
         //        return !isSearching && session.localDragSession != nil
         
-        // Разрешаем drop только при локальном drag и отсутствии фильтра/поиска
-        return !isSearching &&
+//        // Разрешаем drop только при локальном drag и отсутствии фильтра/поиска
+//        return !isSearching &&
+//        !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
+//        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled &&
+//        session.localDragSession != nil
+        
+        return currentSort == .customOrder &&
+        !isSearching &&
         !HeaderButtonsManager.shared.isDoneOnlyEnabled &&
-        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled &&
-        session.localDragSession != nil
+        !HeaderButtonsManager.shared.isNotDoneOnlyEnabled
     }
     
     
@@ -1247,26 +1291,50 @@ extension TasksViewController: AddTaskViewControllerDelegate {
     
     func didAddTask(_ task: TaskEntity) {
         
+//        if let index = viewModel.tasks.firstIndex(of: task) {
+//            viewModel.tasks[index] = task
+//        } else {
+//            viewModel.tasks.insert(task, at: 0)
+//        }
+//        
+//        updateTasksCount()
+//        filterTasks()
+//        
+//        //        // Планируем уведомление, если есть remindAt
+//        //        if task.remindAt != nil {
+//        //            scheduleNotification(for: task)
+//        //        }
+//        
+//        tableView.reloadData()
+//        
+//        // Прокрутка наверх
+//        if !filteredTasks.isEmpty {
+//            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+//        }
+        
         if let index = viewModel.tasks.firstIndex(of: task) {
-            viewModel.tasks[index] = task
-        } else {
-            viewModel.tasks.insert(task, at: 0)
-        }
-        
-        updateTasksCount()
-        filterTasks()
-        
-        //        // Планируем уведомление, если есть remindAt
-        //        if task.remindAt != nil {
-        //            scheduleNotification(for: task)
-        //        }
-        
-        tableView.reloadData()
-        
-        // Прокрутка наверх
-        if !filteredTasks.isEmpty {
-            tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-        }
+               
+               // РЕДАКТИРОВАНИЕ
+               viewModel.tasks[index] = task
+               
+               if let filteredIndex = filteredTasks.firstIndex(of: task) {
+                   let indexPath = IndexPath(row: filteredIndex, section: 0)
+                   tableView.reloadRows(at: [indexPath], with: .automatic)
+               }
+
+           } else {
+               
+               // ДОБАВЛЕНИЕ НОВОЙ ЗАДАЧИ
+               viewModel.tasks.insert(task, at: 0)
+               filterTasks()
+               tableView.reloadData()
+
+               if !filteredTasks.isEmpty {
+                   tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+               }
+           }
+
+           updateTasksCount()
         
     }
     
