@@ -35,7 +35,11 @@ class TasksViewController: UIViewController,
     private var isSearching = false
     
     // MARK: - Speech Recognition
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))!
+    private var speechRecognizer: SFSpeechRecognizer {
+        let langCode = HeaderButtonsManager.shared.selectedLanguage
+        let localeID = langCode == "en" ? "en-US" : "ru-RU"
+        return SFSpeechRecognizer(locale: Locale(identifier: localeID))!
+    }
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
@@ -265,14 +269,9 @@ class TasksViewController: UIViewController,
             }
 
             updateTasksCount()
+        updateSortButtonMenu()
             tableView.reloadData() // если текст в ячейках зависит от языка
     }
-    
-//    private func applyLanguage() {
-//        headerLabel.text = LanguageManager.shared.localizedText(for: "tasksTitle")
-//        searchBar.placeholder = LanguageManager.shared.localizedText(for: "searchPlaceholder")
-//        updateTasksCount()
-//    }
     
     // Меню выбора языка
     
@@ -324,9 +323,15 @@ class TasksViewController: UIViewController,
                self?.applyLanguage()
                self?.updateLanguageButtonMenu()
            }
+        
 
-           let menu = UIMenu(title: "Язык", children: [russian, english])
-           headerLanguageButton.menu = menu
+        let menu = UIMenu(
+            title: LanguageManager.shared.localizedText(for: "searchMenuTitle"), // ключ для заголовка меню
+            children: [russian, english]
+        )
+
+        headerLanguageButton.menu = menu
+        headerLanguageButton.showsMenuAsPrimaryAction = true
     }
     
     // MARK: - Настройки поиска
@@ -364,8 +369,8 @@ class TasksViewController: UIViewController,
                     self?.isVoiceSearching = true
                     self?.startRecording()
                 case .denied, .restricted, .notDetermined:
-                    let alert = UIAlertController(title: "Ошибка", message: "Доступ к микрофону запрещён", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                    let alert = UIAlertController(title: LanguageManager.shared.localizedText(for: "errorMicrophoneAccessTitle"), message: LanguageManager.shared.localizedText(for: "errorMicrophoneAccessMessage"), preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "okButton"), style: .default))
                     self?.present(alert, animated: true)
                 @unknown default: break
                 }
@@ -419,7 +424,9 @@ class TasksViewController: UIViewController,
     
     // MARK: - Настройка SearchBar
     private func setupSearchBar() {
-        searchBar.placeholder = "Поиск задач"
+        let speechPlaceholder = LanguageManager.shared.localizedText(for: "speechPlaceholder")
+        
+        searchBar.placeholder = speechPlaceholder
         searchBar.delegate = self
         searchBar.searchBarStyle = .minimal
         searchBar.backgroundImage = UIImage()
@@ -506,48 +513,72 @@ class TasksViewController: UIViewController,
     }
     
     private func updateSortButtonMenu() {
-        let sortAZ = UIAction(title: "От А до Я", image: UIImage(systemName: "textformat.abc"), state: currentSort == .az ? .on : .off) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentSort = .az
-            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-            self.applySorting()
-            self.updateSortButtonMenu() // обновляем галочку
-        }
-        
-        let sortZA = UIAction(title: "От Я до А", image: UIImage(systemName: "textformat.abc.dottedunderline"), state: currentSort == .za ? .on : .off) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentSort = .za
-            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-            self.applySorting()
-            self.updateSortButtonMenu()
-        }
-        
-        let sortByDateUp = UIAction(title: "По дате ↑", image: UIImage(systemName: "calendar"), state: currentSort == .dateUp ? .on : .off) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentSort = .dateUp
-            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-            self.applySorting()
-            self.updateSortButtonMenu()
-        }
-        
-        let sortByDateDown = UIAction(title: "По дате ↓", image: UIImage(systemName: "calendar"), state: currentSort == .dateDown ? .on : .off) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentSort = .dateDown
-            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-            self.applySorting()
-            self.updateSortButtonMenu()
-        }
-        
-        let customOrder = UIAction(title: "Свой порядок", image: UIImage(systemName: "arrow.up.arrow.down.square"), state: currentSort == .customOrder ? .on : .off) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentSort = .customOrder
-            UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
-            self.applySorting()
-            self.updateSortButtonMenu()
-        }
-        
-        let menu = UIMenu(title: "Сортировка", children: [sortByDateUp, sortByDateDown, sortZA, sortAZ, customOrder])
-        sortButton.menu = menu
+        let sortAZ = UIAction(
+              title: LanguageManager.shared.localizedText(for: "sortAZ"),
+              image: UIImage(systemName: "textformat.abc"),
+              state: currentSort == .az ? .on : .off
+          ) { [weak self] _ in
+              guard let self = self else { return }
+              self.currentSort = .az
+              UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
+              self.applySorting()
+              self.updateSortButtonMenu()
+          }
+
+          let sortZA = UIAction(
+              title: LanguageManager.shared.localizedText(for: "sortZA"),
+              image: UIImage(systemName: "textformat.abc.dottedunderline"),
+              state: currentSort == .za ? .on : .off
+          ) { [weak self] _ in
+              guard let self = self else { return }
+              self.currentSort = .za
+              UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
+              self.applySorting()
+              self.updateSortButtonMenu()
+          }
+
+          let sortByDateUp = UIAction(
+              title: LanguageManager.shared.localizedText(for: "sortDateUp"),
+              image: UIImage(systemName: "calendar"),
+              state: currentSort == .dateUp ? .on : .off
+          ) { [weak self] _ in
+              guard let self = self else { return }
+              self.currentSort = .dateUp
+              UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
+              self.applySorting()
+              self.updateSortButtonMenu()
+          }
+
+          let sortByDateDown = UIAction(
+              title: LanguageManager.shared.localizedText(for: "sortDateDown"),
+              image: UIImage(systemName: "calendar"),
+              state: currentSort == .dateDown ? .on : .off
+          ) { [weak self] _ in
+              guard let self = self else { return }
+              self.currentSort = .dateDown
+              UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
+              self.applySorting()
+              self.updateSortButtonMenu()
+          }
+
+          let customOrder = UIAction(
+              title: LanguageManager.shared.localizedText(for: "sortCustom"),
+              image: UIImage(systemName: "arrow.up.arrow.down.square"),
+              state: currentSort == .customOrder ? .on : .off
+          ) { [weak self] _ in
+              guard let self = self else { return }
+              self.currentSort = .customOrder
+              UserDefaults.standard.set(self.currentSort.rawValue, forKey: "tasksSort")
+              self.applySorting()
+              self.updateSortButtonMenu()
+          }
+
+          let menu = UIMenu(
+              title: LanguageManager.shared.localizedText(for: "sortMenuTitle"),
+              children: [sortByDateUp, sortByDateDown, sortZA, sortAZ, customOrder]
+          )
+
+          sortButton.menu = menu
     }
     
     // Настраиваем действия кнопок Footer
@@ -595,12 +626,12 @@ class TasksViewController: UIViewController,
         
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
-            
+
             if let result = result {
                 self.searchBar.text = result.bestTranscription.formattedString
                 self.searchBar(self.searchBar, textDidChange: result.bestTranscription.formattedString)
             }
-            
+
             if error != nil || (result?.isFinal ?? false) {
                 self.stopRecording()
             }
@@ -614,7 +645,8 @@ class TasksViewController: UIViewController,
         audioEngine.prepare()
         try? audioEngine.start()
         
-        searchBar.placeholder = "Говорите..."
+        let speechPlaceholder = LanguageManager.shared.localizedText(for: "speechPlaceholder")
+        searchBar.placeholder = speechPlaceholder
     }
     
     // Микрофон
@@ -651,8 +683,8 @@ class TasksViewController: UIViewController,
         
         guard FaceIDManager.shared.isFaceIDAvailable() else {
             let alert = UIAlertController(
-                title: "Ошибка",
-                message: "Face ID недоступен на этом устройстве.",
+                title: LanguageManager.shared.localizedText(for: "faceIDErrorTitle"),
+                message: LanguageManager.shared.localizedText(for: "faceIDUnavailableMessage"),
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "Ок", style: .default))
@@ -686,10 +718,10 @@ class TasksViewController: UIViewController,
     
     // Показываем alert при неудаче face id
     private func showFaceIDFailedAlert() {
-        let alert = UIAlertController(title: "Ошибка Face ID",
-                                      message: "Не удалось пройти аутентификацию",
+        let alert = UIAlertController(title: LanguageManager.shared.localizedText(for: "faceIDFailedTitle"),
+                                      message: LanguageManager.shared.localizedText(for: "faceIDFailedMessage"),
                                       preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Закрыть", style: .destructive) { _ in
+        alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "closeButton"), style: .destructive) { _ in
             exit(0) // можно закрыть приложение
         })
         present(alert, animated: true)
@@ -835,7 +867,7 @@ class TasksViewController: UIViewController,
         
         let completeAction = UIContextualAction(
             style: .normal,
-            title: task.isCompleted ? "Снять" : "Выполнено"
+            title: task.isCompleted ? LanguageManager.shared.localizedText(for: "doneButton") : LanguageManager.shared.localizedText(for: "undoneButton")
         ) { [weak self] _, _, completionHandler in
             
             guard let self = self else { return }
@@ -860,7 +892,7 @@ class TasksViewController: UIViewController,
     // Свайп влево → удаление задачи
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completionHandler in
+        let deleteAction = UIContextualAction(style: .destructive, title: LanguageManager.shared.localizedText(for: "deleteButton")) { [weak self] _, _, completionHandler in
             
             guard let self = self else { return }
             

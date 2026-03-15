@@ -201,10 +201,11 @@ class TaskTableViewCell: UITableViewCell {
         // Настройка даты
         if let date = task.createdAt {
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ru_RU")
+            let lang = HeaderButtonsManager.shared.selectedLanguage
+            formatter.locale = Locale(identifier: lang == "ru" ? "ru_RU" : "en_US")
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            dateLabel.text = "Добавлено: \(formatter.string(from: date))"
+            dateLabel.text = "\(LanguageManager.shared.localizedText(for: "addedDateTitle")): \(formatter.string(from: date))"
         } else {
             dateLabel.text = ""
         }
@@ -252,10 +253,11 @@ class TaskTableViewCell: UITableViewCell {
             bottomWithReminderConstraint.isActive = true
             
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ru_RU")
+            let lang = HeaderButtonsManager.shared.selectedLanguage
+            formatter.locale = Locale(identifier: lang == "ru" ? "ru_RU" : "en_US")
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            remindLabel.text = "Напоминание: \(formatter.string(from: remindAt))"
+            remindLabel.text = "\(LanguageManager.shared.localizedText(for: "reminderTitle")): \(formatter.string(from: remindAt))"
             
             let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
                        

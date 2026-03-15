@@ -9,38 +9,41 @@ import LocalAuthentication
 import UIKit
 
 class FaceIDManager {
-
+    
     static let shared = FaceIDManager()
     private init() {}
-
+    
     // Проверяем доступность Face ID
     func isFaceIDAvailable() -> Bool {
         let context = LAContext()
         var error: NSError?
-
+        
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             return context.biometryType == .faceID
         }
         return false
     }
-
+    
     // Запускаем Face ID авторизацию
     func authenticateUser(completion: @escaping (Bool, Error?) -> Void) {
         let context = LAContext()
-        context.localizedCancelTitle = "Отмена"
-        context.localizedFallbackTitle = "Пароль" // исправлено
-            
+        // Используем LanguageManager для локализации кнопок
+        context.localizedCancelTitle = LanguageManager.shared.localizedText(for: "cancelButton")
+        context.localizedFallbackTitle = LanguageManager.shared.localizedText(for: "passwordButton")
+        
+        
         // Проверка доступности прямо перед вызовом
         guard isFaceIDAvailable() else {
             completion(false, nil)
             return
         }
-            
+        
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                localizedReason: "Авторизуйтесь через Face ID") { success, error in
-            DispatchQueue.main.async {
-                completion(success, error)
-            }
+                               localizedReason: LanguageManager.shared.localizedText(for: "faceIDReason")
+                                      ) { success, error in
+                                          DispatchQueue.main.async {
+                                              completion(success, error)
+                                          }
         }
     }
 }

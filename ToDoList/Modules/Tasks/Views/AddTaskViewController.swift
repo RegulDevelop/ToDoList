@@ -34,7 +34,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let titleLabel: UILabel = {
         let tl = UILabel()
-        tl.text = "Задача:"
+        tl.text = LanguageManager.shared.localizedText(for: "taskTitleLabel")
         tl.textColor = .systemYellow
         tl.font = .systemFont(ofSize: 18, weight: .bold)
         return tl
@@ -42,7 +42,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let titleTextField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Название задачи"
+        tf.placeholder = LanguageManager.shared.localizedText(for: "taskNamePlaceholder")
         tf.layer.cornerRadius = 20
         tf.borderStyle = .roundedRect
         tf.layer.masksToBounds = true
@@ -54,7 +54,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let descriptionLabel: UILabel = {
         let dl = UILabel()
-        dl.text = "Описание:"
+        dl.text = LanguageManager.shared.localizedText(for: "descriptionLabel")
         dl.textColor = .systemYellow
         dl.font = .systemFont(ofSize: 18, weight: .bold)
         return dl
@@ -74,7 +74,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let descriptionPlaceholder: UILabel = {
         let label = UILabel()
-        label.text = "Описание задачи..."
+        label.text = LanguageManager.shared.localizedText(for: "descriptionPlaceholder")
         label.textColor = .systemGray3
         label.font = .systemFont(ofSize: 18)
         return label
@@ -82,7 +82,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let remindLabel: UILabel = {
         let label = UILabel()
-        label.text = "Напоминание:"
+        label.text = LanguageManager.shared.localizedText(for: "reminderLabel")
         label.textColor = .systemYellow
         label.font = .systemFont(ofSize: 18, weight: .bold)
         return label
@@ -90,7 +90,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let remindTextField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Время напоминания"
+        tf.placeholder = LanguageManager.shared.localizedText(for: "reminderPlaceholder")
         tf.layer.cornerRadius = 20
         tf.borderStyle = .roundedRect
         tf.layer.masksToBounds = true
@@ -104,7 +104,8 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         let picker = UIDatePicker()
         picker.datePickerMode = .dateAndTime
         picker.preferredDatePickerStyle = .wheels
-        picker.locale = Locale(identifier: "ru_RU") // <-- русский язык
+        let lang = HeaderButtonsManager.shared.selectedLanguage
+        picker.locale = Locale(identifier: lang == "ru" ? "ru_RU" : "en_US")
         picker.minimumDate = Date() // нельзя выбрать прошедшую дату
         picker.tintColor = .systemYellow
         return picker
@@ -119,7 +120,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let completedLabel: UILabel = {
         let label = UILabel()
-        label.text = "Отметить как выполнено:"
+        label.text = LanguageManager.shared.localizedText(for: "completedSwitchLabel")
         label.textColor = .systemYellow
         label.font = .systemFont(ofSize: 18, weight: .bold)
         return label
@@ -134,7 +135,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let importantLabel: UILabel = {
         let label = UILabel()
-        label.text = "Отметить как важное:"
+        label.text = LanguageManager.shared.localizedText(for: "importantSwitchLabel")
         label.textColor = .systemYellow
         label.font = .systemFont(ofSize: 18, weight: .bold)
         return label
@@ -142,7 +143,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let saveButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("Добавить", for: .normal)
+        btn.setTitle(LanguageManager.shared.localizedText(for: "addButton"), for: .normal)
         btn.titleLabel?.font = .boldSystemFont(ofSize: 22)
         btn.backgroundColor = .systemYellow
         btn.tintColor = .white
@@ -152,7 +153,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     
     private let cancelButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("Отмена", for: .normal)
+        btn.setTitle(LanguageManager.shared.localizedText(for: "cancelButton"), for: .normal)
         btn.titleLabel?.font = .boldSystemFont(ofSize: 22)
         btn.backgroundColor = .systemYellow
         btn.tintColor = .white
@@ -177,9 +178,9 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         }
         
         if isEditingTask {
-            saveButton.setTitle("Изменить", for: .normal)
+            saveButton.setTitle(LanguageManager.shared.localizedText(for: "editButton"), for: .normal)
         } else {
-            saveButton.setTitle("Добавить", for: .normal)
+            saveButton.setTitle(LanguageManager.shared.localizedText(for: "addButton"), for: .normal)
         }
         
         completedSwitch.isHidden = !showCompletedSwitch
@@ -336,9 +337,9 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         
         // Формируем текст для шаринга
         let shareText = """
-        Задача: \(title)
-        Описание: \(description)
-        Дата: \(dateString)
+        Задача: \(LanguageManager.shared.localizedText(for: "taskTitleLabel")) \(title)
+        Описание: \(LanguageManager.shared.localizedText(for: "descriptionLabel")) \(description)
+        Дата: \(LanguageManager.shared.localizedText(for: "dateTitle")) \(dateString)
         """
         
         let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
