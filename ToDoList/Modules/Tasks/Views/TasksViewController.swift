@@ -184,10 +184,21 @@ class TasksViewController: UIViewController,
         }
         
         // Загрузка сохраненной сортировки
+//        if let savedSort = UserDefaults.standard.string(forKey: "tasksSort"),
+//           let sort = SortType(rawValue: savedSort) {
+//            currentSort = sort
+//        }
+        
+        // Загрузка сохраненной сортировки
         if let savedSort = UserDefaults.standard.string(forKey: "tasksSort"),
            let sort = SortType(rawValue: savedSort) {
             currentSort = sort
+        } else {
+            currentSort = .dateDown
         }
+
+        updateSortButtonMenu()
+        tableView.dragInteractionEnabled = currentSort == .customOrder
         
         // Авто-авторизация Face ID
         if HeaderButtonsManager.shared.isFaceIDEnabled {
@@ -217,9 +228,18 @@ class TasksViewController: UIViewController,
             authOverlayView.removeFromSuperview()
         }
         
+//        viewModel.loadTasks { [weak self] in
+//            DispatchQueue.main.async {
+//                self?.applySorting()   // ← применяем сохранённый фильтр
+//                self?.tableView.dragInteractionEnabled = self?.currentSort == .customOrder
+//                self?.tableView.reloadData()
+//            }
+//        }
+        
         viewModel.loadTasks { [weak self] in
             DispatchQueue.main.async {
-                self?.applySorting()   // ← применяем сохранённый фильтр
+                self?.applySorting()
+                self?.updateSortButtonMenu()
                 self?.tableView.dragInteractionEnabled = self?.currentSort == .customOrder
                 self?.tableView.reloadData()
             }
@@ -1056,29 +1076,34 @@ extension TasksViewController: AddTaskViewControllerDelegate {
     
     func didAddTask(_ task: TaskEntity) {
         
+//        if let index = viewModel.tasks.firstIndex(of: task) {
+//            
+//            // РЕДАКТИРОВАНИЕ
+//            viewModel.tasks[index] = task
+//            
+//            if let filteredIndex = filteredTasks.firstIndex(of: task) {
+//                let indexPath = IndexPath(row: filteredIndex, section: 0)
+//                tableView.reloadRows(at: [indexPath], with: .automatic)
+//            }
         if let index = viewModel.tasks.firstIndex(of: task) {
-            
-            // РЕДАКТИРОВАНИЕ
-            viewModel.tasks[index] = task
-            
-            if let filteredIndex = filteredTasks.firstIndex(of: task) {
-                let indexPath = IndexPath(row: filteredIndex, section: 0)
-                tableView.reloadRows(at: [indexPath], with: .automatic)
+
+                // РЕДАКТИРОВАНИЕ
+                viewModel.tasks[index] = task
+
+            } else {
+
+                // ДОБАВЛЕНИЕ
+                viewModel.tasks.insert(task, at: 0)
+
+                if !filteredTasks.isEmpty {
+                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+                }
             }
-            
-        } else {
-            
-            // ДОБАВЛЕНИЕ НОВОЙ ЗАДАЧИ
-            viewModel.tasks.insert(task, at: 0)
+
+            applySorting()
             filterTasks()
             tableView.reloadData()
-            
-            if !filteredTasks.isEmpty {
-                tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-            }
-        }
-        
-        updateTasksCount()
+            updateTasksCount()
         
     }
     
