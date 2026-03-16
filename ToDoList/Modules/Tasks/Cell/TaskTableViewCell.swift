@@ -17,7 +17,7 @@ class TaskTableViewCell: UITableViewCell {
     private var bottomWithReminderConstraint: NSLayoutConstraint!
     private var bottomWithoutReminderConstraint: NSLayoutConstraint!
     
-    private let containerView: UIView = {
+    let containerView: UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.systemGray6
         view.layer.cornerRadius = 10

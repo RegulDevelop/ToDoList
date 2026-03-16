@@ -66,6 +66,12 @@ class TasksViewModel {
         if !tasks.contains(task) {
             tasks.insert(task, at: 0)
         }
+        
+        NotificationManager.shared.scheduleNotification(
+            title: title,
+            body: description,
+            date: Date().addingTimeInterval(10)
+        )
     }
 
     // MARK: - Удаление задачи

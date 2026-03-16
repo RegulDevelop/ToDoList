@@ -272,6 +272,16 @@ class TasksViewController: UIViewController,
         }
     }
     
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+
+        NotificationManager.shared.requestPermission()
+
+        return true
+    }
+    
     private func checkTriggeredNotifications() {
 
         let tasks = CoreDataManager.shared.fetchTasks()
@@ -1163,37 +1173,74 @@ extension TasksViewController: UNUserNotificationCenterDelegate {
         //    }
         
         let id = notification.request.identifier
-
-            let tasks = CoreDataManager.shared.fetchTasks()
-
-            if let task = tasks.first(where: { $0.notificationId == id }) {
-                task.hasReminderTriggered = true
-                CoreDataManager.shared.saveContext()
-
-                NotificationCenter.default.post(name: .taskUpdated, object: task)
-            }
-
-            completionHandler([.banner, .sound])
-        }
-    
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
-
-        let id = response.notification.request.identifier
-
+        
         let tasks = CoreDataManager.shared.fetchTasks()
-
+        
         if let task = tasks.first(where: { $0.notificationId == id }) {
-
             task.hasReminderTriggered = true
             CoreDataManager.shared.saveContext()
-
+            
             NotificationCenter.default.post(name: .taskUpdated, object: task)
         }
-
-        completionHandler()
+        
+        completionHandler([.banner, .sound])
     }
+    
+    // 2️⃣ Пользователь нажал на уведомление
+       func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                   didReceive response: UNNotificationResponse,
+                                   withCompletionHandler completionHandler: @escaping () -> Void) {
+
+           let taskID = response.notification.request.identifier
+                  let tasks = CoreDataManager.shared.fetchTasks()
+
+                  if let task = tasks.first(where: { $0.notificationId == taskID }) {
+                      task.hasReminderTriggered = true
+                      CoreDataManager.shared.saveContext()
+
+                      NotificationCenter.default.post(name: .taskUpdated, object: task)
+
+                      // Прокручиваем таблицу к нужной ячейке
+                      if let index = self.filteredTasks.firstIndex(of: task) {
+                          let indexPath = IndexPath(row: index, section: 0)
+                          
+                          DispatchQueue.main.async {
+                              self.tableView.scrollToRow(at: indexPath, at: .middle, animated: true)
+                              
+                              // Ждём, пока ячейка реально появится на экране
+                              DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                  self.blinkRoundedView(at: indexPath)
+                              }
+                          }
+                      }
+                  }
+
+                  completionHandler()
+              }
+
+              // MARK: - Моргаем внутренний скруглённый view ячейки
+              private func blinkRoundedView(at indexPath: IndexPath) {
+                  guard let cell = tableView.cellForRow(at: indexPath) as? TaskTableViewCell else { return }
+
+                  // Предположим, что у тебя есть UIView с именем roundedView
+                  let roundedView = cell.containerView
+
+                  let originalColor = roundedView.backgroundColor
+                  let highlightColor = UIColor.yellow
+
+                  var blinkCount = 0
+                  let maxBlinks = 4
+
+                  Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
+                      if blinkCount >= maxBlinks * 2 {
+                          roundedView.backgroundColor = originalColor
+                          timer.invalidate()
+                      } else {
+                          roundedView.backgroundColor = (roundedView.backgroundColor == originalColor) ? highlightColor : originalColor
+                          blinkCount += 1
+                      }
+                  }
+              }
 
 }
 
@@ -1207,3 +1254,5 @@ extension TasksViewController: LanguageSelectionViewDelegate {
         applyLanguage()
     }
 }
+
+
