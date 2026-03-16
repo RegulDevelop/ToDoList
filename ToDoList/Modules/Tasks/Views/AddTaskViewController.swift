@@ -399,6 +399,18 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             remindDate = nil
         }
         
+        var safeDate: Date?
+
+        if let date = remindDate {
+            
+            if date <= Date() {
+                // если пользователь выбрал текущее время или прошлое
+                safeDate = Date().addingTimeInterval(5)
+            } else {
+                safeDate = date
+            }
+        }
+        
         if isEditingTask, let task = existingTask {
             // Удаляем старое уведомление
             CoreDataManager.shared.removeNotification(for: task)
@@ -408,7 +420,11 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             task.taskDescription = description
             task.isCompleted = isCompleted
             task.isImportant = isImportant
-            task.remindAt = remindDate
+            task.remindAt = safeDate
+
+            if remindDate != nil {
+                task.hasReminderTriggered = false
+            }
             
             CoreDataManager.shared.saveContext()
             
@@ -428,7 +444,8 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             newTask.isCompleted = isCompleted
             newTask.isImportant = isImportant
             newTask.createdAt = Date()
-            newTask.remindAt = remindDate
+            newTask.remindAt = safeDate
+            newTask.hasReminderTriggered = false
             newTask.order = 0
             
             // Сдвигаем остальные задачи вниз
@@ -440,7 +457,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             CoreDataManager.shared.saveContext()
             
             // Планируем уведомление
-            if remindDate != nil && !isCompleted {
+            if safeDate != nil && !isCompleted {
                 CoreDataManager.shared.scheduleNotification(for: newTask)
             }
             

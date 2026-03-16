@@ -258,7 +258,7 @@ class TasksViewController: UIViewController,
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
-        
+        checkTriggeredNotifications()
         filterTasks()
     }
     
@@ -270,6 +270,27 @@ class TasksViewController: UIViewController,
             
             tableView.reloadRows(at: [indexPath], with: .automatic)
         }
+    }
+    
+    private func checkTriggeredNotifications() {
+
+        let tasks = CoreDataManager.shared.fetchTasks()
+        let now = Date()
+
+        for task in tasks {
+
+            if let reminderDate = task.remindAt,
+               reminderDate <= now,
+               !task.hasReminderTriggered {
+
+                task.hasReminderTriggered = true
+            }
+        }
+
+        CoreDataManager.shared.saveContext()
+
+        filterTasks()
+        tableView.reloadData()
     }
     
     // Добавление языка
@@ -1127,19 +1148,53 @@ extension TasksViewController: UNUserNotificationCenterDelegate {
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         
-        // Получаем идентификатор уведомления
-        let id = notification.request.identifier
+        //        // Получаем идентификатор уведомления
+        //        let id = notification.request.identifier
+        //
+        //        let tasks = CoreDataManager.shared.fetchTasks()
+        //        if let task = tasks.first(where: { $0.notificationId == id }) {
+        //            task.hasReminderTriggered = true
+        //            CoreDataManager.shared.saveContext()
+        //            NotificationCenter.default.post(name: .taskUpdated, object: task)
+        //        }
+        //
+        //        // Показываем баннер + звук
+        //        completionHandler([.banner, .sound])
+        //    }
         
+        let id = notification.request.identifier
+
+            let tasks = CoreDataManager.shared.fetchTasks()
+
+            if let task = tasks.first(where: { $0.notificationId == id }) {
+                task.hasReminderTriggered = true
+                CoreDataManager.shared.saveContext()
+
+                NotificationCenter.default.post(name: .taskUpdated, object: task)
+            }
+
+            completionHandler([.banner, .sound])
+        }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+
+        let id = response.notification.request.identifier
+
         let tasks = CoreDataManager.shared.fetchTasks()
+
         if let task = tasks.first(where: { $0.notificationId == id }) {
+
             task.hasReminderTriggered = true
             CoreDataManager.shared.saveContext()
+
             NotificationCenter.default.post(name: .taskUpdated, object: task)
         }
-        
-        // Показываем баннер + звук
-        completionHandler([.banner, .sound])
+
+        completionHandler()
     }
+
 }
 
 extension Notification.Name {
