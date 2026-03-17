@@ -10,6 +10,7 @@ import LocalAuthentication
 import Speech
 import AVFoundation
 import UserNotifications
+import CoreData
 
 class TasksViewController: UIViewController,
                            UITableViewDataSource,
@@ -1107,35 +1108,57 @@ extension TasksViewController: AddTaskViewControllerDelegate {
     
     func didAddTask(_ task: TaskEntity) {
         
-//        if let index = viewModel.tasks.firstIndex(of: task) {
-//            
-//            // РЕДАКТИРОВАНИЕ
-//            viewModel.tasks[index] = task
-//            
-//            if let filteredIndex = filteredTasks.firstIndex(of: task) {
-//                let indexPath = IndexPath(row: filteredIndex, section: 0)
-//                tableView.reloadRows(at: [indexPath], with: .automatic)
-//            }
-        if let index = viewModel.tasks.firstIndex(of: task) {
-
-                // РЕДАКТИРОВАНИЕ
-                viewModel.tasks[index] = task
-
-            } else {
-
-                // ДОБАВЛЕНИЕ
-                viewModel.tasks.insert(task, at: 0)
-
-                if !filteredTasks.isEmpty {
-                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
-                }
-            }
-
-            applySorting()
-            filterTasks()
-            tableView.reloadData()
-            updateTasksCount()
+        //        if let index = viewModel.tasks.firstIndex(of: task) {
+        //
+        //                // РЕДАКТИРОВАНИЕ
+        //                viewModel.tasks[index] = task
+        //
+        //            } else {
+        //
+        //                // ДОБАВЛЕНИЕ
+        //                viewModel.tasks.insert(task, at: 0)
+        //
+        //                if !filteredTasks.isEmpty {
+        //                    tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: true)
+        //                }
+        //            }
         
+        if let index = viewModel.tasks.firstIndex(of: task) {
+            // РЕДАКТИРОВАНИЕ
+            viewModel.tasks[index] = task
+        } else {
+            // ДОБАВЛЕНИЕ
+            viewModel.tasks.append(task)
+        }
+        
+        // 1. Сортировка + фильтр
+        applySorting()
+        filterTasks()
+        
+        tableView.reloadData()
+        updateTasksCount()
+        
+        if let index = filteredTasks.firstIndex(where: { $0.objectID == task.objectID }) {
+            let indexPath = IndexPath(row: index, section: 0)
+            DispatchQueue.main.async {
+                self.tableView.scrollToRow(at: indexPath, at: .middle, animated: true)
+            }
+        }
+        
+//        // 2. Скролл + анимация
+//        if let index = filteredTasks.firstIndex(where: { $0.objectID == task.objectID }) {
+//            
+//            let indexPath = IndexPath(row: index, section: 0)
+//            
+//            DispatchQueue.main.async {
+//                self.tableView.scrollToRow(at: indexPath, at: .middle, animated: true)
+//                
+//                // 🔥 анимация после скролла
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                    self.blinkRoundedView(at: indexPath)
+//                }
+//            }
+//        }
     }
     
 }
