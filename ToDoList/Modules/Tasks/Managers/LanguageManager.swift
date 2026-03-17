@@ -224,6 +224,21 @@ final class LanguageManager {
             "ru": "Дата:",
             "en": "Date:"
         ],
+        
+        "faceIDSettingsTitle": [
+            "ru": "Face ID отключен",
+            "en": "Face ID Disabled"
+        ],
+
+        "faceIDSettingsMessage": [
+            "ru": "Чтобы использовать Face ID, включите доступ в настройках приложения",
+            "en": "To use Face ID, please enable access in Settings"
+        ],
+
+        "openSettingsButton": [
+            "ru": "Открыть настройки",
+            "en": "Open Settings"
+        ]
 
     ]
     

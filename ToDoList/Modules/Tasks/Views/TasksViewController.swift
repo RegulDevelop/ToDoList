@@ -248,6 +248,20 @@ class TasksViewController: UIViewController,
         
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(applyLanguage),
             name: .languageChanged,
             object: nil
@@ -261,6 +275,57 @@ class TasksViewController: UIViewController,
         navigationController?.setNavigationBarHidden(true, animated: false)
         checkTriggeredNotifications()
         filterTasks()
+    }
+    
+    @objc private func appWillEnterForeground() {
+
+        guard HeaderButtonsManager.shared.isFaceIDEnabled else { return }
+
+        if authOverlayView.superview == nil {
+            view.addSubview(authOverlayView)
+
+            authOverlayView.translatesAutoresizingMaskIntoConstraints = false
+
+            NSLayoutConstraint.activate([
+                authOverlayView.topAnchor.constraint(equalTo: view.topAnchor),
+                authOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                authOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                authOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
+
+        FaceIDManager.shared.authenticateUser { [weak self] success, error in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+
+                if success {
+                    self.authOverlayView.removeFromSuperview()
+                } else {
+                    self.showFaceIDFailedAlert()
+                }
+
+            }
+        }
+    }
+    
+    @objc private func appDidEnterBackground() {
+
+        guard HeaderButtonsManager.shared.isFaceIDEnabled else { return }
+
+        if authOverlayView.superview == nil {
+
+            view.addSubview(authOverlayView)
+
+            authOverlayView.translatesAutoresizingMaskIntoConstraints = false
+
+            NSLayoutConstraint.activate([
+                authOverlayView.topAnchor.constraint(equalTo: view.topAnchor),
+                authOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                authOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                authOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
     }
     
     @objc private func handleTaskUpdate(_ notification: Notification) {
@@ -727,37 +792,82 @@ class TasksViewController: UIViewController,
     
     // faceID
     @objc private func faceIDTapped() {
-        
-#if targetEnvironment(simulator)
+
+    #if targetEnvironment(simulator)
         print("Face ID недоступен на симуляторе")
         return
-#endif
-        
-        guard FaceIDManager.shared.isFaceIDAvailable() else {
-            let alert = UIAlertController(
-                title: LanguageManager.shared.localizedText(for: "faceIDErrorTitle"),
-                message: LanguageManager.shared.localizedText(for: "faceIDUnavailableMessage"),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Ок", style: .default))
-            present(alert, animated: true)
-            return
-        }
-        
-        FaceIDManager.shared.authenticateUser { success, error in
-            DispatchQueue.main.async {
-                if success {
-                    
-                    HeaderButtonsManager.shared.isFaceIDEnabled.toggle()
-                    self.updateHeaderButtonUI()
-                    
-                } else {
-                    
-                    HeaderButtonsManager.shared.isFaceIDEnabled = false
-                    self.updateHeaderButtonUI()
+    #endif
+
+        let context = LAContext()
+        var error: NSError?
+
+        // Проверяем доступность биометрии
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+
+            FaceIDManager.shared.authenticateUser { success, error in
+                DispatchQueue.main.async {
+
+                    if success {
+
+                        HeaderButtonsManager.shared.isFaceIDEnabled.toggle()
+                        self.updateHeaderButtonUI()
+
+                    } else {
+
+                        if let error = error as? LAError {
+
+                            switch error.code {
+
+                            case .biometryNotAvailable,
+                                 .biometryNotEnrolled,
+                                 .biometryLockout:
+
+                                self.showFaceIDSettingsAlert()
+
+                            default:
+                                break
+                            }
+                        }
+                    }
                 }
             }
+
+        } else {
+
+            // Если Face ID отключен для приложения
+            showFaceIDSettingsAlert()
         }
+    }
+    
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func showFaceIDSettingsAlert() {
+
+        let alert = UIAlertController(
+            title: LanguageManager.shared.localizedText(for: "faceIDSettingsTitle"),
+            message: LanguageManager.shared.localizedText(for: "faceIDSettingsMessage"),
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "cancelButton"),
+            style: .cancel
+        ))
+
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "openSettingsButton"),
+            style: .default
+        ) { _ in
+            self.openAppSettings()
+        })
+
+        present(alert, animated: true)
     }
     
     // Скрывает экран пока не прошла проверку face id
