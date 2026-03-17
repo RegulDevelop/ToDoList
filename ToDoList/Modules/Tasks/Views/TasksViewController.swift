@@ -338,6 +338,52 @@ class TasksViewController: UIViewController,
         }
     }
     
+    private func checkMicrophonePermission(completion: @escaping (Bool) -> Void) {
+        
+        switch AVAudioApplication.shared.recordPermission {
+            
+        case .granted:
+            completion(true)
+            
+        case .denied:
+            completion(false)
+            
+        case .undetermined:
+            
+            AVAudioApplication.requestRecordPermission { allowed in
+                DispatchQueue.main.async {
+                    completion(allowed)
+                }
+            }
+            
+        @unknown default:
+            completion(false)
+        }
+    }
+    
+    private func showMicrophoneSettingsAlert() {
+
+        let alert = UIAlertController(
+            title: LanguageManager.shared.localizedText(for: "microphoneAccessTitle"),
+            message: LanguageManager.shared.localizedText(for: "microphoneAccessMessage"),
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "cancelButton"),
+            style: .cancel
+        ))
+
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "openSettingsButton"),
+            style: .default
+        ) { _ in
+            self.openAppSettings()
+        })
+
+        present(alert, animated: true)
+    }
+    
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -708,18 +754,32 @@ class TasksViewController: UIViewController,
     
     // делегатский метод UISearchBarDelegate
     func searchBarBookmarkButtonClicked(_ searchBar: UISearchBar) {
-        // Проверяем доступ к микрофону и распознаванию речи
-        SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
-            DispatchQueue.main.async {
-                switch authStatus {
-                case .authorized:
-                    self?.startRecording()
-                case .denied, .restricted, .notDetermined:
-                    let alert = UIAlertController(title: "Ошибка", message: "Доступ к микрофону запрещён", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Ок", style: .default))
-                    self?.present(alert, animated: true)
-                @unknown default:
-                    break
+
+        checkMicrophonePermission { [weak self] micGranted in
+            guard let self = self else { return }
+
+            if !micGranted {
+                self.showMicrophoneSettingsAlert()
+                return
+            }
+
+            SFSpeechRecognizer.requestAuthorization { authStatus in
+                DispatchQueue.main.async {
+
+                    switch authStatus {
+
+                    case .authorized:
+                        self.startRecording()
+
+                    case .denied, .restricted:
+                        self.showMicrophoneSettingsAlert()
+
+                    case .notDetermined:
+                        break
+
+                    @unknown default:
+                        break
+                    }
                 }
             }
         }

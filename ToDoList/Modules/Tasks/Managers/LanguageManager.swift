@@ -238,6 +238,16 @@ final class LanguageManager {
         "openSettingsButton": [
             "ru": "Открыть настройки",
             "en": "Open Settings"
+        ],
+        
+        "microphoneAccessTitle": [
+            "ru": "Доступ к микрофону",
+            "en": "Microphone Access"
+        ],
+
+        "microphoneAccessMessage": [
+            "ru": "Разрешите доступ к микрофону в настройках приложения",
+            "en": "Please enable microphone access in Settings"
         ]
 
     ]
