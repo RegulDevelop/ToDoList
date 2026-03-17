@@ -348,94 +348,45 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     }
     
     @objc private func saveTapped() {
-        
-        //        guard let title = titleTextField.text, !title.isEmpty else { return }
-        //        let description = descriptionTextView.text ?? ""
-        //        let isCompleted = completedSwitch.isOn
-        //        let isImportant = importantSwitch.isOn
-        //
-        //        if isEditingTask, let task = existingTask {
-        //            // Редактируем существующую задачу
-        //            task.title = title
-        //            task.taskDescription = description
-        //            task.isCompleted = isCompleted
-        //            task.isImportant = isImportant
-        //            CoreDataManager.shared.saveContext()
-        //            delegate?.didAddTask(task)
-        //        } else {
-        //            // Создаём новую задачу сверху
-        //            let newTask = TaskEntity(context: CoreDataManager.shared.context)
-        //            newTask.title = title
-        //            newTask.taskDescription = description
-        //            newTask.isCompleted = isCompleted
-        //            newTask.isImportant = isImportant
-        //            newTask.createdAt = Date()
-        //            newTask.remindAt = remindDatePicker.date
-        //            newTask.order = 0  // <-- новая задача в начале
-        //
-        //            // Смещаем все существующие задачи вниз
-        //            let tasks = CoreDataManager.shared.fetchTasks()
-        //            for task in tasks {
-        //                task.order += 1
-        //            }
-        //
-        //            CoreDataManager.shared.saveContext()
-        //            delegate?.didAddTask(newTask)
-        //        }
-        //
-        //        dismiss(animated: true)
-        
         guard let title = titleTextField.text, !title.isEmpty else { return }
         let description = descriptionTextView.text ?? ""
         let isCompleted = completedSwitch.isOn
         let isImportant = importantSwitch.isOn
-        let remindDate: Date?
 
-        if remindTextField.text?.isEmpty == false {
+        // Дата напоминания
+        var remindDate: Date?
+
+        if let text = remindTextField.text, !text.isEmpty {
             remindDate = remindDatePicker.date
+            // Проверка, что дата в будущем
+            if remindDate! <= Date() {
+                remindDate = Date().addingTimeInterval(60)
+            }
         } else if isEditingTask {
             remindDate = existingTask?.remindAt
-        } else {
-            remindDate = nil
         }
-        
-        var safeDate: Date?
 
-        if let date = remindDate {
-            
-            if date <= Date() {
-                // если пользователь выбрал текущее время или прошлое
-                safeDate = Date().addingTimeInterval(5)
-            } else {
-                safeDate = date
-            }
-        }
-        
         if isEditingTask, let task = existingTask {
-            // Удаляем старое уведомление
-            CoreDataManager.shared.removeNotification(for: task)
-            
-            // Обновляем данные
+            let oldReminderDate = task.remindAt
+
             task.title = title
             task.taskDescription = description
             task.isCompleted = isCompleted
             task.isImportant = isImportant
-            task.remindAt = safeDate
+            task.remindAt = remindDate
 
-            if remindDate != nil {
-                task.hasReminderTriggered = false
-            }
-            
-            CoreDataManager.shared.saveContext()
-            
-            // Планируем новое уведомление, если задача не выполнена
-            if let _ = remindDate, !isCompleted {
-                CoreDataManager.shared.scheduleNotification(for: task)
-            } else {
+            // если изменилась дата, обновляем уведомления
+            if oldReminderDate != remindDate {
                 CoreDataManager.shared.removeNotification(for: task)
+                if let _ = remindDate, !isCompleted {
+                    task.hasReminderTriggered = false
+                    CoreDataManager.shared.scheduleNotification(for: task)
+                }
             }
-            
+
+            CoreDataManager.shared.saveContext()
             delegate?.didAddTask(task)
+
         } else {
             // Новая задача
             let newTask = TaskEntity(context: CoreDataManager.shared.context)
@@ -444,26 +395,26 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
             newTask.isCompleted = isCompleted
             newTask.isImportant = isImportant
             newTask.createdAt = Date()
-            newTask.remindAt = safeDate
+            newTask.remindAt = remindDate
             newTask.hasReminderTriggered = false
             newTask.order = 0
-            
+
             // Сдвигаем остальные задачи вниз
             let tasks = CoreDataManager.shared.fetchTasks()
             for task in tasks {
                 task.order += 1
             }
-            
+
             CoreDataManager.shared.saveContext()
-            
+
             // Планируем уведомление
-            if safeDate != nil && !isCompleted {
+            if let _ = remindDate, !isCompleted {
                 CoreDataManager.shared.scheduleNotification(for: newTask)
             }
-            
+
             delegate?.didAddTask(newTask)
         }
-        
+
         dismiss(animated: true)
     }
     

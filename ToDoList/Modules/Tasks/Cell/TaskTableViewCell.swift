@@ -184,6 +184,11 @@ class TaskTableViewCell: UITableViewCell {
         
         bottomWithReminderConstraint?.isActive = false
         bottomWithoutReminderConstraint?.isActive = true
+        
+        remindIcon.isHidden = true
+        remindLabel.isHidden = true
+        remindIcon.image = UIImage(systemName: "alarm.waves.left.and.right.fill")
+        remindIcon.tintColor = .systemYellow
     }
     
     // MARK: - Конфигурация
@@ -232,20 +237,6 @@ class TaskTableViewCell: UITableViewCell {
             containerView.alpha = 1.0
         }
         
-        // Настройка напоминания
-        //        if let remindAt = task.remindAt {
-        //            remindIcon.isHidden = false
-        //            remindLabel.isHidden = false
-        //            let formatter = DateFormatter()
-        //            formatter.locale = Locale(identifier: "ru_RU")
-        //            formatter.dateStyle = .medium
-        //            formatter.timeStyle = .short
-        //            remindLabel.text = "Напоминание: \(formatter.string(from: remindAt))"
-        //        } else {
-        //            remindIcon.isHidden = true
-        //            remindLabel.isHidden = true
-        //        }
-        
         if let remindAt = task.remindAt {
             remindIcon.isHidden = false
             remindLabel.isHidden = false
@@ -260,19 +251,14 @@ class TaskTableViewCell: UITableViewCell {
             remindLabel.text = "\(LanguageManager.shared.localizedText(for: "reminderTitle")): \(formatter.string(from: remindAt))"
             
             let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
-                       
-               if task.isCompleted || task.hasReminderTriggered {
-                   remindIcon.image = UIImage(systemName: "alarm.fill", withConfiguration: config)
-                   remindIcon.tintColor = .systemGray
-               } else {
-                   remindIcon.image = UIImage(systemName: "alarm.waves.left.and.right.fill", withConfiguration: config)
-                   remindIcon.tintColor = .systemYellow
-               }
-        } else {
-            remindIcon.isHidden = true
-            remindLabel.isHidden = true
-            bottomWithReminderConstraint.isActive = false
-            bottomWithoutReminderConstraint.isActive = true
+
+            if task.hasReminderTriggered {
+                remindIcon.image = UIImage(systemName: "alarm.fill", withConfiguration: config)
+                remindIcon.tintColor = .systemGray
+            } else {
+                remindIcon.image = UIImage(systemName: "alarm.waves.left.and.right.fill", withConfiguration: config)
+                remindIcon.tintColor = .systemYellow
+            }
         }
         
         // Настройка текста и атрибутов
