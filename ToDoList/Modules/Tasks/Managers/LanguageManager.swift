@@ -95,7 +95,7 @@ final class LanguageManager {
         
         "sortMenuTitle": [
             "ru": "Сортировка",
-            "en": "Sorting"
+            "en": "Sort"
         ],
         
         "searchMenuTitle": [
@@ -248,6 +248,26 @@ final class LanguageManager {
         "microphoneAccessMessage": [
             "ru": "Разрешите доступ к микрофону в настройках приложения",
             "en": "Please enable microphone access in Settings"
+        ],
+        
+        "notificationAccessTitle": [
+            "ru": "Уведомления выключены",
+            "en": "Notifications Disabled"
+        ],
+
+        "notificationAccessMessage": [
+            "ru": "Разрешите уведомления в настройках, чтобы использовать напоминания",
+            "en": "To set reminders, please enable notifications in Settings"
+        ],
+        
+        "errorTitle": [
+            "ru": "Ошибка",
+            "en": "Error"
+        ],
+
+        "invalidDateMessage": [
+            "ru": "Дата напоминания должна быть в будущем",
+            "en": "Reminder date must be in the future"
         ]
 
     ]

@@ -13,7 +13,7 @@ protocol AddTaskViewControllerDelegate: AnyObject {
     func didAddTask(_ task: TaskEntity)
 }
 
-class AddTaskViewController: UIViewController, UITextViewDelegate {
+class AddTaskViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate {
     
     var existingTask: TaskEntity?
     var isEditingTask = false
@@ -165,6 +165,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         descriptionTextView.delegate = self
+        remindTextField.delegate = self
         setupViews()
         setupRemindPicker()
         
@@ -197,6 +198,110 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     // Метод для скрытия клавиатуры
     @objc private func dismissKeyboard() {
         view.endEditing(true)
+    }
+    
+//    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+//        if textField == remindTextField {
+//            checkNotificationPermission { granted in
+//                if granted {
+//                    DispatchQueue.main.async {
+//                        textField.becomeFirstResponder()
+//                    }
+//                } else {
+//                    self.showNotificationSettingsAlert()
+//                }
+//            }
+//            return false
+//        }
+//        return true
+//    }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        guard textField == remindTextField else { return true }
+
+        let center = UNUserNotificationCenter.current()
+
+        var allowEditing = true
+
+        let semaphore = DispatchSemaphore(value: 0)
+
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+
+            case .authorized, .provisional, .ephemeral:
+                allowEditing = true
+
+            case .notDetermined:
+                allowEditing = false
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                    DispatchQueue.main.async {
+                        if granted {
+                            textField.becomeFirstResponder()
+                        }
+                    }
+                }
+
+            case .denied:
+                allowEditing = false
+                DispatchQueue.main.async {
+                    self.showNotificationSettingsAlert()
+                }
+
+            @unknown default:
+                allowEditing = false
+            }
+
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+        return allowEditing
+    }
+    
+    private func checkNotificationPermission(completion: @escaping (Bool) -> Void) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .authorized, .provisional, .ephemeral:
+                    completion(true)
+
+                case .notDetermined:
+                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                        DispatchQueue.main.async {
+                            completion(granted)
+                        }
+                    }
+
+                case .denied:
+                    completion(false)
+
+                @unknown default:
+                    completion(false)
+                }
+            }
+        }
+    }
+    
+    private func showNotificationSettingsAlert() {
+        let alert = UIAlertController(
+            title: LanguageManager.shared.localizedText(for: "notificationAccessTitle"),
+            message: LanguageManager.shared.localizedText(for: "notificationAccessMessage"),
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "cancelButton"), style: .cancel))
+
+        alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "openSettingsButton"), style: .default) { _ in
+            self.openAppSettings()
+        })
+
+        present(alert, animated: true)
+    }
+    
+    private func openAppSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
     }
     
     private func setupViews() {
@@ -316,12 +421,22 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
     }
     
     @objc private func donePickingDate() {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
+//        let dateFormatter = DateFormatter()
+//        dateFormatter.dateStyle = .medium
+//        dateFormatter.timeStyle = .short
+//        
+//        remindTextField.text = dateFormatter.string(from: remindDatePicker.date)
+//        remindTextField.resignFirstResponder()
         
-        remindTextField.text = dateFormatter.string(from: remindDatePicker.date)
-        remindTextField.resignFirstResponder()
+        let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+
+            let lang = HeaderButtonsManager.shared.selectedLanguage
+            formatter.locale = Locale(identifier: lang == "ru" ? "ru_RU" : "en_US")
+
+            remindTextField.text = formatter.string(from: remindDatePicker.date)
+            remindTextField.resignFirstResponder()
     }
     
     @objc private func shareTapped() {
@@ -359,8 +474,15 @@ class AddTaskViewController: UIViewController, UITextViewDelegate {
         if let text = remindTextField.text, !text.isEmpty {
             remindDate = remindDatePicker.date
             // Проверка, что дата в будущем
-            if remindDate! <= Date() {
-                remindDate = Date().addingTimeInterval(60)
+            if let remindDate = remindDate, remindDate <= Date() {
+                let alert = UIAlertController(
+                    title: LanguageManager.shared.localizedText(for: "errorTitle"),
+                    message: LanguageManager.shared.localizedText(for: "invalidDateMessage"),
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "okButton"), style: .default))
+                present(alert, animated: true)
+                return
             }
         } else if isEditingTask {
             remindDate = existingTask?.remindAt

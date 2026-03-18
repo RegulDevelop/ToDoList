@@ -163,15 +163,15 @@ class TasksViewController: UIViewController,
         
         UNUserNotificationCenter.current().delegate = self
         
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            DispatchQueue.main.async {
-                if granted {
-                    print("Разрешение на уведомления получено")
-                } else {
-                    print("Уведомления запрещены")
-                }
-            }
-        }
+//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+//            DispatchQueue.main.async {
+//                if granted {
+//                    print("Разрешение на уведомления получено")
+//                } else {
+//                    print("Уведомления запрещены")
+//                }
+//            }
+//        }
         
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(handleTaskUpdate(_:)),
@@ -384,15 +384,15 @@ class TasksViewController: UIViewController,
         present(alert, animated: true)
     }
     
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-
-        NotificationManager.shared.requestPermission()
-
-        return true
-    }
+//    func application(
+//        _ application: UIApplication,
+//        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+//    ) -> Bool {
+//
+//        NotificationManager.shared.requestPermission()
+//
+//        return true
+//    }
     
     private func checkTriggeredNotifications() {
 
