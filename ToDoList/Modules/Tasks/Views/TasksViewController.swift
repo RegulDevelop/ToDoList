@@ -11,6 +11,7 @@ import Speech
 import AVFoundation
 import UserNotifications
 import CoreData
+import AudioToolbox
 
 class TasksViewController: UIViewController,
                            UITableViewDataSource,
@@ -1186,6 +1187,9 @@ class TasksViewController: UIViewController,
         
         guard currentSort == .customOrder else { return }
         
+        let generator = UISelectionFeedbackGenerator()
+        generator.selectionChanged()
+        
         let movedTask = filteredTasks[sourceIndexPath.row]
         
         // индексы в основном массиве
@@ -1217,16 +1221,23 @@ extension TasksViewController: UITableViewDragDelegate {
                    at indexPath: IndexPath) -> [UIDragItem] {
         
         guard currentSort == .customOrder else {
-            return []
-        }
-        
-        let task = filteredTasks[indexPath.row]
-        
-        let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
-        let dragItem = UIDragItem(itemProvider: itemProvider)
-        dragItem.localObject = task
-        
-        return [dragItem]
+                return []
+            }
+            
+            // 🔥 ВИБРАЦИЯ (как в iOS)
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.impactOccurred()
+            
+            // 🔥 ЗВУК ЩЕЛЧКА
+            AudioServicesPlaySystemSound(1104)
+            
+            let task = filteredTasks[indexPath.row]
+            
+            let itemProvider = NSItemProvider(object: (task.title ?? "") as NSString)
+            let dragItem = UIDragItem(itemProvider: itemProvider)
+            dragItem.localObject = task
+            
+            return [dragItem]
     }
 }
 
