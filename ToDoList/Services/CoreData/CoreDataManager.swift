@@ -7,6 +7,7 @@
 
 import CoreData
 import UserNotifications
+import UIKit
 
 final class CoreDataManager {
 
@@ -107,21 +108,27 @@ final class CoreDataManager {
     
     func updateAppBadge() {
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
-            DispatchQueue.main.async {
+               
+               let now = Date()
 
-                let now = Date()
+               let validRequests = requests.filter { request in
+                   if let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                      let triggerDate = Calendar.current.date(from: trigger.dateComponents) {
+                       return triggerDate > now
+                   }
+                   return false
+               }
 
-                let validRequests = requests.filter { request in
-                    if let trigger = request.trigger as? UNCalendarNotificationTrigger,
-                       let triggerDate = Calendar.current.date(from: trigger.dateComponents) {
-                        return triggerDate > now
-                    }
-                    return false
-                }
+               let count = validRequests.count
 
-                UNUserNotificationCenter.current().setBadgeCount(validRequests.count)
-            }
-        }
+               if #available(iOS 17.0, *) {
+                   UNUserNotificationCenter.current().setBadgeCount(count)
+               } else {
+                   DispatchQueue.main.async {
+                       UIApplication.shared.applicationIconBadgeNumber = count
+                   }
+               }
+           }
     }
     
 //    // Планирование уведомления

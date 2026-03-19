@@ -55,9 +55,18 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            CoreDataManager.shared.updateAppBadge()
+        let id = notification.request.identifier
+
+        let tasks = CoreDataManager.shared.fetchTasks()
+
+        if let task = tasks.first(where: { $0.notificationId == id }) {
+            task.hasReminderTriggered = true
+            CoreDataManager.shared.saveContext()
         }
+
+        CoreDataManager.shared.updateAppBadge()
+        
+        //UIApplication.shared.applicationIconBadgeNumber = UIApplication.shared.applicationIconBadgeNumber
 
         completionHandler([.banner, .sound])
     }
@@ -68,9 +77,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            CoreDataManager.shared.updateAppBadge()
-        }
+        CoreDataManager.shared.updateAppBadge()
 
         completionHandler()
     }
