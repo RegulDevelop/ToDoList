@@ -20,36 +20,26 @@ class TasksViewModel {
     func loadTasks(completion: @escaping () -> Void) {
         
         let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
-
-           if isFirstLaunch {
-
-               networkService.fetchTodos { [weak self] result in
-                   guard let self = self else { return }
-
-                   switch result {
-
-                   case .success(let todos):
-
-                       self.storage.saveTodosFromAPI(todos)
-
-                       UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
-
-                   case .failure(let error):
-
-                       print("Ошибка загрузки JSON:", error)
-
-                   }
-
-                   self.tasks = self.storage.fetchTasks()
-                   completion()
-               }
-
-           } else {
-
-               tasks = storage.fetchTasks()
-               completion()
-
-           }
+          
+          if isFirstLaunch {
+              networkService.fetchTodosWithCompletion { [weak self] result in
+                  guard let self = self else { return }
+                  
+                  switch result {
+                  case .success(let todos):
+                      self.storage.saveTodosFromAPI(todos)
+                      UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+                  case .failure(let error):
+                      print("Ошибка загрузки JSON:", error)
+                  }
+                  
+                  self.tasks = self.storage.fetchTasks()
+                  completion()
+              }
+          } else {
+              tasks = storage.fetchTasks()
+              completion()
+          }
     }
 
     // MARK: - Добавление новой задачи

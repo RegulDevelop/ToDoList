@@ -7,6 +7,6 @@
 
 import Foundation
 
-struct TodoResponse: Codable {
+struct TodoResponse: Codable, @unchecked Sendable {
     let todos: [TodoDTO]
 }

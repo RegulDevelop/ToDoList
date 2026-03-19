@@ -7,79 +7,78 @@
 
 import Foundation
 
+import Foundation
+
 final class NetworkService {
     
-    // Загрузка из локального файла (если нужно)
-    func fetchTodosFromFile(completion: @escaping (Result<[TodoDTO], Error>) -> Void) {
-        
-        DispatchQueue.global(qos: .background).async {
-            
-            guard let url = Bundle.main.url(forResource: "todos", withExtension: "json") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "FileNotFound", code: 404)))
-                }
-                return
-            }
-            
-            do {
-                
-                let data = try Data(contentsOf: url)
-                let decoded = try JSONDecoder().decode(TodoResponse.self, from: data)
-                
-                DispatchQueue.main.async {
-                    completion(.success(decoded.todos))
-                }
-                
-            } catch {
-                
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                
-            }
+    // MARK: - Загрузка задач из API
+    func fetchTodos() async throws -> [TodoDTO] {
+        // Проверяем URL
+        guard let url = URL(string: "https://dummyjson.com/todos") else {
+            throw NSError(domain: "InvalidURL", code: 400)
         }
+        
+        // Выполняем сетевой запрос
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        // Декодируем JSON
+        let decoded = try JSONDecoder().decode(TodoResponse.self, from: data)
+        return decoded.todos
     }
     
-    // Загрузка из API
-    func fetchTodos(completion: @escaping (Result<[TodoDTO], Error>) -> Void) {
-        
-        guard let url = URL(string: "https://dummyjson.com/todos") else {
-            completion(.failure(NSError(domain: "InvalidURL", code: 400)))
-            return
+    // MARK: - Загрузка задач из локального файла
+    func fetchTodosFromFile() async throws -> [TodoDTO] {
+        // Находим файл в bundle
+        guard let url = Bundle.main.url(forResource: "todos", withExtension: "json") else {
+            throw NSError(domain: "FileNotFound", code: 404)
         }
         
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
-            }
-            
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "NoData", code: 500)))
-                }
-                return
-            }
-            
+        // Загружаем данные
+        let data = try Data(contentsOf: url)
+        
+        // Декодируем JSON
+        let decoded = try JSONDecoder().decode(TodoResponse.self, from: data)
+        return decoded.todos
+    }
+    
+    func fetchTodosWithCompletion(completion: @escaping (Result<[TodoDTO], Error>) -> Void) {
+        Task {
             do {
-                
-                let decoded = try JSONDecoder().decode(TodoResponse.self, from: data)
-                
-                DispatchQueue.main.async {
-                    completion(.success(decoded.todos))
-                }
-                
+                let todos = try await fetchTodos()
+                completion(.success(todos))
             } catch {
-                
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                
+                completion(.failure(error))
             }
-            
-        }.resume()
+        }
     }
 }
+
+    // Загрузка из API
+func fetchTodosWithCompletion(completion: @escaping (Result<[TodoDTO], Error>) -> Void) {
+    guard let url = URL(string: "https://dummyjson.com/todos") else {
+        completion(.failure(NSError(domain: "InvalidURL", code: 400)))
+        return
+    }
+
+    URLSession.shared.dataTask(with: url) { data, _, error in
+        if let error = error {
+            DispatchQueue.main.async { completion(.failure(error)) }
+            return
+        }
+
+        guard let data = data else {
+            DispatchQueue.main.async { completion(.failure(NSError(domain: "NoData", code: 500))) }
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                let decoded = try JSONDecoder().decode(TodoResponse.self, from: data)
+                completion(.success(decoded.todos))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }.resume()
+}
+

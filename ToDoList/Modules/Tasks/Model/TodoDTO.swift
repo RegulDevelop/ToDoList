@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct TodoDTO: Codable {
+struct TodoDTO: Codable, @unchecked Sendable {
     
     let id: Int
     let todo: String
