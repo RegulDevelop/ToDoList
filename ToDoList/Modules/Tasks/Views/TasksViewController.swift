@@ -908,28 +908,55 @@ class TasksViewController: UIViewController,
         }
     }
     
+    // MARK: - Alert при ручном включении Face ID
     private func showFaceIDSettingsAlert() {
-
         let alert = UIAlertController(
             title: LanguageManager.shared.localizedText(for: "faceIDSettingsTitle"),
             message: LanguageManager.shared.localizedText(for: "faceIDSettingsMessage"),
             preferredStyle: .alert
         )
-
+        
         alert.addAction(UIAlertAction(
-            title: LanguageManager.shared.localizedText(for: "cancelButton"),
+            title: LanguageManager.shared.localizedText(for: "cancelButton"), // Отмена
             style: .cancel
         ))
-
+        
         alert.addAction(UIAlertAction(
             title: LanguageManager.shared.localizedText(for: "openSettingsButton"),
             style: .default
         ) { _ in
             self.openAppSettings()
         })
-
+        
         present(alert, animated: true)
     }
+
+    // MARK: - Alert при авто-авторизации (вход)
+    private func showFaceIDFailedAlert() {
+        let alert = UIAlertController(
+            title: LanguageManager.shared.localizedText(for: "faceIDFailedTitle"),
+            message: LanguageManager.shared.localizedText(for: "faceIDFailedMessage"),
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "closeButton"), // Закрыть приложение
+            style: .destructive
+        ) { _ in
+            exit(0)
+        })
+        
+        alert.addAction(UIAlertAction(
+            title: LanguageManager.shared.localizedText(for: "openSettingsButton"),
+            style: .default
+        ) { _ in
+            self.openAppSettings()
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    
     
     // Скрывает экран пока не прошла проверку face id
     private let authOverlayView: UIView = {
@@ -939,16 +966,16 @@ class TasksViewController: UIViewController,
         return view
     }()
     
-    // Показываем alert при неудаче face id
-    private func showFaceIDFailedAlert() {
-        let alert = UIAlertController(title: LanguageManager.shared.localizedText(for: "faceIDFailedTitle"),
-                                      message: LanguageManager.shared.localizedText(for: "faceIDFailedMessage"),
-                                      preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "closeButton"), style: .destructive) { _ in
-            exit(0) // можно закрыть приложение
-        })
-        present(alert, animated: true)
-    }
+//    // Показываем alert при неудаче face id
+//    private func showFaceIDFailedAlert() {
+//        let alert = UIAlertController(title: LanguageManager.shared.localizedText(for: "faceIDFailedTitle"),
+//                                      message: LanguageManager.shared.localizedText(for: "faceIDFailedMessage"),
+//                                      preferredStyle: .alert)
+//        alert.addAction(UIAlertAction(title: LanguageManager.shared.localizedText(for: "closeButton"), style: .destructive) { _ in
+//            exit(0) // можно закрыть приложение
+//        })
+//        present(alert, animated: true)
+//    }
     
     // doneOnly
     @objc private func doneOnlyTapped() {
