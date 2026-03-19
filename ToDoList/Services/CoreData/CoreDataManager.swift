@@ -105,6 +105,25 @@ final class CoreDataManager {
         saveContext()
     }
     
+    func updateAppBadge() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            DispatchQueue.main.async {
+
+                let now = Date()
+
+                let validRequests = requests.filter { request in
+                    if let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                       let triggerDate = Calendar.current.date(from: trigger.dateComponents) {
+                        return triggerDate > now
+                    }
+                    return false
+                }
+
+                UNUserNotificationCenter.current().setBadgeCount(validRequests.count)
+            }
+        }
+    }
+    
 //    // Планирование уведомления
 //    func scheduleNotification(for task: TaskEntity) {
 //        guard let remindDate = task.remindAt, !task.isCompleted else { return }
@@ -134,11 +153,14 @@ final class CoreDataManager {
     func scheduleNotification(for task: TaskEntity) {
             // Проверяем дату напоминания и статус задачи
             guard let remindDate = task.remindAt, !task.isCompleted else { return }
+        
+            CoreDataManager.shared.updateAppBadge()
 
             // Устанавливаем контент уведомления
-            let content = UNMutableNotificationContent()
-            content.title = task.title ?? "Напоминание"
-            content.body = task.taskDescription ?? ""
+        let content = UNMutableNotificationContent()
+        content.title = task.title ?? "Напоминание"
+        content.body = task.taskDescription ?? ""
+//        content.badge = NSNumber(value: 1)
             
             // Используем пользовательский звук
             // Имя файла должно быть точным и включать расширение
@@ -159,18 +181,20 @@ final class CoreDataManager {
                                                 content: content,
                                                 trigger: trigger)
 
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Ошибка при добавлении уведомления: \(error)")
-                } else {
-                    print("✅ Уведомление запланировано на \(remindDate)")
-                }
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Ошибка при добавлении уведомления: \(error)")
+            } else {
+                print("✅ Уведомление запланировано на \(remindDate)")
+                self.updateAppBadge()
             }
+        }
         }
 
     // Удаление уведомления
     func removeNotification(for task: TaskEntity) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [task.notificationId])
+        updateAppBadge()
     }
     
 }

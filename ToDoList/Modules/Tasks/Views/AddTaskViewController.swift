@@ -538,6 +538,7 @@ class AddTaskViewController: UIViewController, UITextViewDelegate, UITextFieldDe
         }
 
         dismiss(animated: true)
+        CoreDataManager.shared.updateAppBadge()
     }
     
     @objc private func cancelTapped() {

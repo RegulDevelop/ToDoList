@@ -12,8 +12,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+    func application(_ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+        UNUserNotificationCenter.current().delegate = self
+
+        // 👉 СБРОС badge при старте
+        if #available(iOS 17.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(0)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+
         return true
     }
 
@@ -30,7 +40,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
+    
+//    func applicationDidBecomeActive(_ application: UIApplication) {
+//        CoreDataManager.shared.updateAppBadge()
+//    }
 
 
 }
 
+extension AppDelegate: UNUserNotificationCenterDelegate {
+
+    // Когда уведомление приходит (даже если приложение открыто)
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            CoreDataManager.shared.updateAppBadge()
+        }
+
+        completionHandler([.banner, .sound])
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            CoreDataManager.shared.updateAppBadge()
+        }
+
+        completionHandler()
+    }
+}
