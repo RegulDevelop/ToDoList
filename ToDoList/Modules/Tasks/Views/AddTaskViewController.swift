@@ -448,13 +448,24 @@ class AddTaskViewController: UIViewController, UITextViewDelegate, UITextFieldDe
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .short
+        let langCode = HeaderButtonsManager.shared.selectedLanguage
+        switch langCode {
+        case "ru":
+            dateFormatter.locale = Locale(identifier: "ru_RU")
+        case "en":
+            dateFormatter.locale = Locale(identifier: "en_US")
+        default:
+            dateFormatter.locale = Locale.current
+        }
+
+        // 3. Формируем строку даты
         let dateString = dateFormatter.string(from: date)
         
         // Формируем текст для шаринга
         let shareText = """
-        Задача: \(LanguageManager.shared.localizedText(for: "taskTitleLabel")) \(title)
-        Описание: \(LanguageManager.shared.localizedText(for: "descriptionLabel")) \(description)
-        Дата: \(LanguageManager.shared.localizedText(for: "dateTitle")) \(dateString)
+        \(LanguageManager.shared.localizedText(for: "taskTitleLabel")) \(title)
+        \(LanguageManager.shared.localizedText(for: "descriptionLabel")) \(description)
+        \(LanguageManager.shared.localizedText(for: "dateTitle")) \(dateString)
         """
         
         let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)

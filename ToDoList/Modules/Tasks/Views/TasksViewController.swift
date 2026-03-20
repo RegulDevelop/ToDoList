@@ -837,7 +837,8 @@ class TasksViewController: UIViewController,
         recognitionRequest = nil
         recognitionTask = nil
         
-        searchBar.placeholder = "Поиск задач"
+        searchBar.placeholder = LanguageManager.shared.localizedText(for: "searchPlaceholder")
+
     }
     
     // Сброс микрофона
